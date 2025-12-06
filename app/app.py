@@ -1,6 +1,6 @@
 import streamlit as st
 import random
-import time
+import time # (Zaman fonksiyonları şu an kullanılmasa da ileride lazım olabilir diye tutuyorum)
 
 # --- OYUN VERİLERİ ---
 
@@ -79,8 +79,15 @@ def yeni_tur():
         st.session_state.oyun_durumu = "sonuc"
         return
         
-    # 1. Kader Kartı Çek
-    kart_isim, ozellik, deger, aciklama = random.choice(list(KADER_KARTLARI.items()))
+    # HATA DÜZELTME BÖLÜMÜ: SÖZLÜK ÖĞELERİ İKİ PARÇADAN OLUŞUR (ANAHTAR VE DEĞER)
+    # Bu yüzden, seçilen öğeyi iki değişkene atamamız gerekiyor.
+    
+    # random.choice() ile rastgele bir (kart_isim, (özellik, değer, açıklama)) tuple'ı çekilir.
+    kart_isim, kart_verisi = random.choice(list(KADER_KARTLARI.items()))
+    
+    # Veri paketini açıyoruz
+    ozellik, deger, aciklama = kart_verisi
+    
     st.session_state.kader_etkisi = (kart_isim, ozellik, deger, aciklama)
     
     # 2. Kritik Anı Çek
@@ -96,8 +103,8 @@ def kader_etkisini_uygula():
     
     _, ozellik, deger, _ = st.session_state.kader_etkisi
     
-    # Profili güncelle
-    st.session_state.profil[ozellik] += deger
+    # Profili güncelle (0'ın altına düşmesini engeller)
+    st.session_state.profil[ozellik] = max(0, st.session_state.profil[ozellik] + deger)
     # Log kaydı
     st.session_state.log.append((st.session_state.tur, "KADER", ozellik, deger))
     
@@ -149,7 +156,6 @@ else:
     colG, colZ, colD, colE = st.columns(4)
     cols = [colG, colZ, colD, colE]
     ozellikler = ["Güç", "Zeka", "Duygu", "Etki"]
-    renkler = ["red", "blue", "green", "orange"]
     
     for i, oz in enumerate(ozellikler):
         cols[i].metric(oz, st.session_state.profil[oz], help=f"{ozellikler[i]} Profili")
@@ -164,7 +170,7 @@ else:
         <div class="kader-card">
             <h4>KADER KARTI: {kart_isim}</h4>
             <p style='color: #CFD8DC;'>{aciklama}</p>
-            <h3 style='color: #FFEB3B;'>{ozellik} {isaret}{değer}</h3>
+            <h3 style='color: #FFEB3B;'>{ozellik} {isaret}{deger}</h3>
         </div>
         """, unsafe_allow_html=True)
         
@@ -208,6 +214,7 @@ if st.session_state.oyun_durumu == "sonuc":
     st.markdown(f"**Güç:** {final_profil['Güç']} | **Zeka:** {final_profil['Zeka']} | **Duygu:** {final_profil['Duygu']} | **Etki:** {final_profil['Etki']}")
 
     # Nihai Yorum
+    # Sözlükteki en yüksek/en düşük değeri bulma
     en_yuksek = max(final_profil, key=final_profil.get)
     en_dusuk = min(final_profil, key=final_profil.get)
 
