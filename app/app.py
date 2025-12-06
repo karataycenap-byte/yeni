@@ -144,7 +144,6 @@ class MindGardenEngine:
     def get_neighbors(self, x: int, y: int) -> List[Cell]:
         """Komşu hücreleri döndürür"""
         neighbors = []
-        # Tüm 8 komşu
         for dx, dy in [(-1,0), (1,0), (0,-1), (0,1), (-1,-1), (-1,1), (1,-1), (1,1)]:
             nx, ny = x + dx, y + dy
             if 0 <= nx < self.state.grid_size and 0 <= ny < self.state.grid_size:
@@ -210,7 +209,6 @@ class MindGardenEngine:
             self.add_event(f"✂️ Kaygı tamamen temizlendi ({x},{y})")
             return True, "Kaygı yok edildi!"
         else:
-            # Sağlığın 0 altına inmesini önlemek için max(0, ...) kullanımı korunmuştur
             cell.health = max(0, cell.health - 40)
             if cell.health == 0:
                 cell.type = CellType.EMPTY
@@ -227,11 +225,6 @@ class MindGardenEngine:
             return False, "Yeterli AP yok! (3 AP gerekli)"
         
         healed = 0
-        # Meditasyon sayacının tutulmadığı için Zen Master başarımı geçici olarak pasif
-        # Gerçek bir sayaç eklenmesi gerekir.
-        # if 'meditation_count' not in st.session_state: st.session_state.meditation_count = 0
-        # st.session_state.meditation_count += 1 
-
         for row in self.state.grid:
             for cell in row:
                 if cell.type != CellType.EMPTY and cell.type != CellType.ANXIETY:
@@ -348,7 +341,6 @@ class MindGardenEngine:
                     # Kaygı komşulara zarar verir
                     for neighbor in self.get_neighbors(cell.x, cell.y):
                         if neighbor.type not in [CellType.EMPTY, CellType.ANXIETY]:
-                            # Analitik düşünce kaygıya karşı daha dirençli
                             damage = 15
                             if neighbor.type == CellType.THOUGHT_ANALYTIC:
                                 damage = 5
@@ -369,7 +361,7 @@ class MindGardenEngine:
                             new_anxieties.append((target.x, target.y))
         
         for x, y in new_anxieties:
-            if self.state.grid[y][x].type == CellType.EMPTY: # Yayılma çakışmasını önle
+            if self.state.grid[y][x].type == CellType.EMPTY: 
                 self.state.grid[y][x].type = CellType.ANXIETY
                 self.state.grid[y][x].health = 40
                 self.add_event(f"⚠️ Kaygı yayıldı ({x},{y})")
@@ -419,14 +411,13 @@ class MindGardenEngine:
         wisdom_cells = [cell for row in self.state.grid for cell in row if cell.type == CellType.WISDOM]
         
         if wisdom_cells:
-            # Her bilgelik ağacı tüm bahçeye yavaş bir iyileştirme sağlar
             heal_amount = len(wisdom_cells) * 2
             for row in self.state.grid:
                 for cell in row:
                     if cell.type not in [CellType.EMPTY, CellType.ANXIETY]:
                         cell.health = min(100, cell.health + heal_amount)
                     elif cell.type == CellType.ANXIETY:
-                        cell.health = max(0, cell.health - len(wisdom_cells) * 1) # Kaygıyı yavaşça eritir
+                        cell.health = max(0, cell.health - len(wisdom_cells) * 1) 
     
     def _check_flower_bloom(self):
         """Çiçek açma kontrolü"""
@@ -436,7 +427,6 @@ class MindGardenEngine:
                     neighbors = self.get_neighbors(cell.x, cell.y)
                     creative_neighbors = [n for n in neighbors if n.type == CellType.THOUGHT_CREATIVE]
                     
-                    # Komşu yaratıcı düşüncelerden güç alır
                     chance = 0.2 + (len(creative_neighbors) * 0.1)
                     
                     if random.random() < chance:
@@ -615,7 +605,6 @@ def create_garden_visualization(state: GameState):
     z_data = []
     hover_text = []
     
-    # 1. color_map Tanımlanması
     color_map = {
         CellType.EMPTY: 0,
         CellType.ANXIETY: 1,
@@ -629,8 +618,7 @@ def create_garden_visualization(state: GameState):
         CellType.WISDOM: 9
     }
 
-    # 2. HATA DÜZELTME: color_map.get() ile güvenli erişim sağlanmıştır
-    # Eğer hücre tipi haritada yoksa 0 (EMPTY) değeri kullanılır.
+    # Hata düzeltmesi: color_map.get() ile güvenli erişim
     z_colors = [[color_map.get(cell.type, 0) for cell in row] for row in state.grid]
 
     for y, row in enumerate(state.grid):
@@ -645,15 +633,14 @@ def create_garden_visualization(state: GameState):
             hover_row.append(
                 f"{config['emoji']} {config['name']}<br>"
                 f"Konum: ({x},{y})<br>"
-                f"Sağlık: {cell.health}<br>"
-                f"Enerji: {cell.energy}<br>"
+                f"Sağlık: {cell.health}/100<br>"
+                f"Enerji: {cell.energy}/100<br>"
                 f"Yaş: {cell.age} tur"
             )
         
         z_data.append(z_row)
         hover_text.append(hover_row)
     
-    # Her hücre tipi için tek bir renk
     colorscale_values = [
         [0.0, CELL_CONFIGS[CellType.EMPTY]['color']],
         [0.1, CELL_CONFIGS[CellType.EMPTY]['color']],
@@ -678,7 +665,6 @@ def create_garden_visualization(state: GameState):
     ]
     
     max_val = max(color_map.values())
-    # 0'dan 9'a normalize et (0-1 arasına)
     normalized_z = [[val / max_val for val in row] for row in z_colors]
 
     fig = go.Figure(data=go.Heatmap(
@@ -718,18 +704,16 @@ def get_random_empty_coords(grid: List[List[Cell]], size: int) -> tuple[int, int
         if grid[y][x].type == CellType.EMPTY:
             return x, y
         attempts += 1
-    # Eğer boş yer kalmadıysa ortayı döndürür
     return size // 2, size // 2 
 
 
 def initialize_game():
-    """Yeni oyun başlat"""
+    """Yeni oyun başlat ve ilk durumu oluştur."""
     state = GameState()
     engine = MindGardenEngine(state)
     
     size = state.grid_size
 
-    # İlk Düşünceleri Ek
     for _ in range(2):
         x, y = get_random_empty_coords(state.grid, size)
         thought_type = random.choice([CellType.THOUGHT_CREATIVE, CellType.THOUGHT_ANALYTIC])
@@ -737,12 +721,10 @@ def initialize_game():
         state.grid[y][x].health = 60
         state.grid[y][x].energy = 20
         
-    # Kaygıyı Yerleştir
     x, y = get_random_empty_coords(state.grid, size)
     state.grid[y][x].type = CellType.ANXIETY
     state.grid[y][x].health = 45
     
-    # Travmayı Yerleştir
     x, y = get_random_empty_coords(state.grid, size)
     state.grid[y][x].type = CellType.TRAUMA
     state.grid[y][x].health = 100
@@ -752,6 +734,65 @@ def initialize_game():
     engine.add_event("⚠️ Bir kaygı ve bir travma var")
     
     return state
+
+def display_how_to_play():
+    """Oyunun nasıl oynanacağını anlatan profesyonel bir sayfa gösterir."""
+    st.markdown("## 🧠 Zihin Bahçesi: Nasıl Oynanır?")
+    st.caption("Bu oyun, zihninizi bir bahçe metaforu üzerinden yönetmeyi ve geliştirmeyi simüle eder.")
+    
+    st.divider()
+
+    tab_start, tab_cells, tab_strategy = st.tabs(["▶️ Başlangıç", "📊 Hücre Tipleri", "📜 Strateji"])
+    
+    with tab_start:
+        st.markdown("### 1. Temel Mekanik")
+        st.markdown("""
+        * **Amaç:** Bilinç seviyenizi (XP) yükseltmek, düşüncelerinizi sağlıklı tutmak ve Kaygı/Travma hücrelerini yönetmektir.
+        * **AP (Aksiyon Puanı):** Her tur 3 AP ile başlarsınız. Düşünce ekmek, sulamak, budamak gibi her eylem AP harcar.
+        * **Tur Sistemi:** Tüm AP'nizi harcadığınızda **'TURU BİTİR'** düğmesine basarsınız. Bu, bitkilerin büyümesine, kaygıların yayılmasına ve yeni gün/zaman dilimine geçilmesine neden olur.
+        """)
+        
+        st.markdown("### 2. İstatistikler")
+        st.markdown("""
+        * **Sağlık (Health):** Hücrenin canlılığı. Düşük sağlık, hücrenin kuruyarak ölmesine neden olur. Sulayarak artırılır.
+        * **Enerji (Energy):** Hücrenin ürettiği ve komşularına aktarabileceği güç. Yüksek enerji, daha hızlı büyümeye ve çiçek açmaya yardımcı olur.
+        * **Bilinç Seviyesi:** Deneyim puanı (XP) kazandıkça artar. Travma dönüştürme ve Kaygı temizleme yüksek XP verir.
+        """)
+
+    with tab_cells:
+        st.markdown("### 3. Hücre Tipleri ve İşlevleri")
+        
+        col_type1, col_type2 = st.columns(2)
+        
+        with col_type1:
+            st.markdown("#### **Pozitif / Gelişen Tipler**")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.THOUGHT_CREATIVE]['emoji']} Yaratıcı Düşünce (1 AP):** Hızlı büyür, Bilinç Çiçeğine dönüşebilir. Dengeli büyütülmelidir.")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.THOUGHT_ANALYTIC]['emoji']} Analitik Düşünce (1 AP):** Kaygıların zararına karşı daha dirençlidir. Kaygıların yanına yerleştirmek iyidir.")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.THOUGHT_EMOTIONAL]['emoji']} Duygusal Düşünce (1 AP):** Komşularının enerjisini artırır, destekleyici bir rol oynar.")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.FLOWER]['emoji']} Bilinç Çiçeği:** Yaratıcı düşüncenin olgunlaşmış hali. Güçlü enerji kaynağıdır.")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.WISDOM]['emoji']} Bilgelik Ağacı:** Dönüşmüş Travma. Tüm bahçeyi yavaşça iyileştirir (Pasif buff).")
+        
+        with col_type2:
+            st.markdown("#### **Negatif / Yönetilmesi Gereken Tipler**")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.ANXIETY]['emoji']} Kaygı:** Yayılır, komşu düşüncelerin sağlığını düşürür. **Buda (Prune)** aksiyonu ile temizlenir.")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.TRAUMA]['emoji']} Travma Kökü:** Sabit bir engeldir. Yüksek seviyede destekleyici düşünce ve **Dönüştür (Transform)** aksiyonu gerektirir.")
+            st.markdown(f"* **{CELL_CONFIGS[CellType.JOY]['emoji']} Sevinç Işığı:** **Oluştur (Focus Joy)** aksiyonu ile üretilir. Komşu kaygıları eritir ve düşüncelere enerji verir.")
+
+    with tab_strategy:
+        st.markdown("### 4. Başarılı Olma Stratejileri")
+        st.markdown("""
+        * **Öncelik Kaygılar:** Kaygılar çok hızlı yayılır. AP'nizi öncelikle **Kaygı Buda (Prune)** aksiyonuna harcayarak yayılmalarını durdurun.
+        * **Dengeyi Koru:** Bahçenizin her köşesine farklı düşünce tipleri (Yaratıcı, Analitik, Duygusal) ekerek bir **destek ağı** oluşturun.
+        * **Meditasyon Kullanımı:** Meditasyon (3 AP), tüm pozitif hücrelerin sağlığını ve enerjisini aynı anda artırır. Bu, tur bitiminde hücrelerin zayıflamasını engellemek için kritik bir toplu iyileştirmedir.
+        * **Travmayı Dönüştürme:** Travmayı Bilgeliğe dönüştürmek en çok XP'yi verir. Bunun için Travmanın etrafına **sağlığı yüksek (70+)** Analitik, Duygusal ve Yaratıcı düşüncelerden oluşan bir üçgen oluşturun.
+        """)
+
+    st.divider()
+    if st.button("🚀 OYUNU BAŞLAT", type="primary", use_container_width=True):
+        st.session_state.game_state = initialize_game()
+        st.session_state.message = "Zihin bahçenize hoş geldiniz. İlk AP'lerinizi kullanın!"
+        st.session_state.game_started = True
+        st.rerun()
 
 def main():
     st.set_page_config(page_title="Zihin Bahçesi", page_icon="🌱", layout="wide")
@@ -780,23 +821,32 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    if 'game_state' not in st.session_state:
-        st.session_state.game_state = initialize_game()
+    if 'game_started' not in st.session_state:
+        st.session_state.game_started = False
+        st.session_state.game_state = None # Başlangıçta state olmasın
     
-    if 'selected_cell' not in st.session_state:
-        st.session_state.selected_cell = (3, 3)
-    
-    if 'message' not in st.session_state:
-        st.session_state.message = None
-    
+    # Yeni Oyun Başlatma Düğmesi (Ana sayfa düzeni için)
+    st.sidebar.title("Kontrol")
+    if st.sidebar.button("🔄 Yeni Oyun Başlat", help="Mevcut oyunu sıfırlar.", type="secondary"):
+        st.session_state.game_started = False
+        st.session_state.game_state = None
+        st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
+        st.rerun()
+
+    if not st.session_state.game_started:
+        display_how_to_play()
+        return
+
+    # Oyun Başladı
     state = st.session_state.game_state
     engine = MindGardenEngine(state)
     
     st.title("🌱 ZİHİN BAHÇESİ")
     st.caption("Zihninizi büyütün, kaygıları yönetin, bilincinizi yükseltin")
     
+    # Üst Bilgi Metrikleri
     xp_needed = state.consciousness_level * 100
-    xp_progress = state.consciousness_xp / xp_needed
+    xp_progress = min(1.0, state.consciousness_xp / xp_needed) # XP progress 100% üzerinde gösterilmesin
     
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
@@ -810,45 +860,65 @@ def main():
     with col5:
         st.metric("Zaman", state.time_of_day.value)
     
+    # Aksiyon Mesajları
     if st.session_state.message:
+        message_box = st.empty()
         if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message or "dönüştürüldü" in st.session_state.message:
-            st.success(st.session_state.message)
+            message_box.success(st.session_state.message)
         elif "Yeterli AP" in st.session_state.message or "dolu" in st.session_state.message or "gerekli" in st.session_state.message:
-            st.warning(st.session_state.message)
+            message_box.warning(st.session_state.message)
         else:
-            st.info(st.session_state.message)
+            message_box.info(st.session_state.message)
 
         # Tur sonunda mesajı silme mantığı
         if st.session_state.message == "Tur bitti! Bahçe gelişti.":
              st.session_state.message = None
+        else:
+             # Diğer mesajları aksiyon alındıktan sonra sil
+             if st.session_state.action_points < 3:
+                # Sadece başarılı aksiyonlarda mesajı koru, sonraki aksiyon veya turda silinir.
+                pass
+             else:
+                # Yeni tur başlangıcında mesajı sil
+                st.session_state.message = None
+            
     
     col_left, col_right = st.columns([3, 2])
     
     with col_left:
-        st.subheader("🗺️ Bahçeniz")
+        st.subheader("🗺️ Zihin Haritası")
         
         fig = create_garden_visualization(state)
         st.plotly_chart(fig, use_container_width=True)
         
-        st.info("💡 Grid üzerinde koordinatları görebilirsiniz. Sağda seçili hücreyi yönetin.")
+        # Olay Günlüğü alt bölüme taşındı
+        st.markdown("---")
+        st.subheader("📜 Olay Günlüğü")
+        log_html = ""
+        for entry in reversed(state.event_log):
+            log_html += f"<li>{entry}</li>"
+        st.markdown(f"<ul style='font-size: 14px; list-style-type: none; padding-left: 0;'>{log_html}</ul>",
+                    unsafe_allow_html=True)
     
     with col_right:
-        st.subheader("🎯 Kontrol Paneli")
+        st.subheader("🎯 Seçili Alan Kontrolü")
         
-        col_x, col_y = st.columns(2)
-        with col_x:
-            # st.number_input'ta key'i değiştirmeden kullanmak için varsayılan değeri session_state'ten alın.
-            sel_x = st.number_input("X Koordinat", 0, state.grid_size-1, 
-                                     st.session_state.selected_cell[0], key="sel_x")
-        with col_y:
-            sel_y = st.number_input("Y Koordinat", 0, state.grid_size-1, 
-                                     st.session_state.selected_cell[1], key="sel_y")
-        
-        st.session_state.selected_cell = (sel_x, sel_y)
-        x, y = st.session_state.selected_cell
+        # Koordinat Seçimi
+        with st.expander("Koordinat Seç", expanded=True):
+            col_x, col_y = st.columns(2)
+            with col_x:
+                sel_x = st.number_input("X Koordinat", 0, state.grid_size-1, 
+                                        st.session_state.selected_cell[0], key="sel_x")
+            with col_y:
+                sel_y = st.number_input("Y Koordinat", 0, state.grid_size-1, 
+                                        st.session_state.selected_cell[1], key="sel_y")
+            st.session_state.selected_cell = (sel_x, sel_y)
+            x, y = st.session_state.selected_cell
+
         cell = state.grid[y][x]
         config = get_cell_config(cell.type)
         
+        # Hücre Bilgisi
         st.markdown(f"""
         <div style='background: white; padding: 15px; border-radius: 10px; border-left: 4px solid {config['color']}'>
             <h3>{config['emoji']} {config['name']}</h3>
@@ -860,12 +930,12 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        st.divider()
+        st.markdown("---")
         
-        tab1, tab2, tab3 = st.tabs(["🌱 Ekme", "⚡ Aksiyonlar", "🎯 Özel"])
+        tab_plant, tab_action, tab_special = st.tabs(["🌱 EKME", "💧 TEMEL AKSİYON", "✨ İLERİ TEKNİKLER"])
         
-        with tab1:
-            st.write("**Düşünce Türü Seç (Boş Alana):**")
+        with tab_plant:
+            st.write("Düşünce Türü Seç (Boş Alan Gerekir):")
             
             col_a, col_b = st.columns(2)
             with col_a:
@@ -890,8 +960,8 @@ def main():
                     st.session_state.message = msg
                     if success: st.rerun()
         
-        with tab2:
-            st.write("**Temel İşlemler:**")
+        with tab_action:
+            st.write("Temel Bakım ve Kaygı Yönetimi:")
             
             if st.button("💧 Sula (1 AP)", key="water", use_container_width=True):
                 success, msg = engine.water_cell(x, y)
@@ -903,80 +973,71 @@ def main():
                 st.session_state.message = msg
                 if success: st.rerun()
             
+            st.markdown("---")
             if st.button("🧘 Meditasyon - Tüm Bahçe (3 AP)", key="meditate", use_container_width=True):
                 success, msg = engine.meditate()
                 st.session_state.message = msg
                 if success: st.rerun()
         
-        with tab3:
-            st.write("**Gelişmiş Teknikler:**")
+        with tab_special:
+            st.write("Gelişmiş Teknikler (Yüksek Etki):")
             
             if st.button("✨ Sevinç Işığı Oluştur (2 AP)", key="joy", use_container_width=True):
                 success, msg = engine.focus_joy(x, y)
                 st.session_state.message = msg
                 if success: st.rerun()
-            st.caption("En az 2 güçlü düşünce gerekli (Boş alana)")
+            st.caption("Boş alanda, en az 2 güçlü düşünce gerektirir.")
             
             if st.button("🌳 Travma Dönüştür (3 AP)", key="transform", use_container_width=True):
                 success, msg = engine.transform_trauma(x, y)
                 st.session_state.message = msg
                 if success: st.rerun()
-            st.caption("Travma Kökü üzerinde, en az 3 güçlü destek düşünce gerekli")
+            st.caption("Travma Kökü üzerinde, en az 3 güçlü destek düşünce gerektirir.")
         
-        st.divider()
+        st.markdown("---")
         
-        if st.button("⏭️ TURU BİTİR", type="primary", use_container_width=True):
+        if st.button("⏭️ TURU BİTİR VE İLERLE", type="primary", use_container_width=True):
             engine.end_turn()
             st.session_state.message = "Tur bitti! Bahçe gelişti."
             st.rerun()
         
-        st.divider()
+        st.markdown("---")
         
+        # İstatistikler
         stats = engine.get_stats()
-        st.subheader("📊 Bahçe Durumu")
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            st.metric("🌱 Düşünceler", stats['thoughts'])
-            st.metric("🌺 Çiçekler", stats['flowers'])
-            st.metric("✨ Sevinç", stats['joy'])
-        with col_s2:
-            st.metric("🐛 Kaygı", stats['anxiety'])
-            st.metric("🌑 Travma", stats['trauma'])
-            st.metric("🌳 Bilgelik", stats['wisdom'])
+        with st.expander("📊 Bahçe İstatistikleri", expanded=False):
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                st.metric("🌱 Düşünceler", stats['thoughts'])
+                st.metric("🌺 Çiçekler", stats['flowers'])
+                st.metric("✨ Sevinç", stats['joy'])
+            with col_s2:
+                st.metric("🐛 Kaygı", stats['anxiety'])
+                st.metric("🌑 Travma", stats['trauma'])
+                st.metric("🌳 Bilgelik", stats['wisdom'])
         
-        st.divider()
-        
-        st.subheader("📜 Olay Günlüğü")
-        log_html = ""
-        # En son olayları en üstte göster
-        for entry in reversed(state.event_log):
-            log_html += f"<li>{entry}</li>"
-        st.markdown(f"<ul style='font-size: 14px; list-style-type: none; padding-left: 0;'>{log_html}</ul>",
-                    unsafe_allow_html=True)
-        
-        st.divider()
-        
-        st.subheader("🏆 Başarımlar")
-        achievement_list = []
-        for key in ACHIEVEMENTS_INFO:
-            info = ACHIEVEMENTS_INFO[key]
-            is_unlocked = key in state.achievements
-            status_emoji = "✅" if is_unlocked else "🔒"
-            status_text = "Açıldı" if is_unlocked else "Kilitli"
-            color = "#00B894" if is_unlocked else "#999999"
-            
-            achievement_list.append(f"""
-            <div style='display: flex; align-items: center; margin-bottom: 5px; background: #FFFFFF; padding: 5px; border-radius: 5px; border-left: 3px solid {color};'>
-                <span style='font-size: 20px; margin-right: 10px;'>{info['emoji']}</span>
-                <div style='flex-grow: 1;'>
-                    <b>{info['name']}</b>
-                    <p style='font-size: 12px; margin: 0;'>{info['desc']}</p>
+        # Başarımlar
+        with st.expander("🏆 Başarımlar", expanded=False):
+            achievement_list = []
+            for key in ACHIEVEMENTS_INFO:
+                info = ACHIEVEMENTS_INFO[key]
+                is_unlocked = key in state.achievements
+                status_emoji = "✅" if is_unlocked else "🔒"
+                status_text = "Açıldı" if is_unlocked else "Kilitli"
+                color = "#00B894" if is_unlocked else "#999999"
+                
+                achievement_list.append(f"""
+                <div style='display: flex; align-items: center; margin-bottom: 5px; background: #FFFFFF; padding: 5px; border-radius: 5px; border-left: 3px solid {color};'>
+                    <span style='font-size: 20px; margin-right: 10px;'>{info['emoji']}</span>
+                    <div style='flex-grow: 1;'>
+                        <b>{info['name']}</b>
+                        <p style='font-size: 12px; margin: 0;'>{info['desc']}</p>
+                    </div>
+                    <span style='font-size: 12px; font-weight: bold; color: {color};'>{status_emoji} {status_text}</span>
                 </div>
-                <span style='font-size: 12px; font-weight: bold; color: {color};'>{status_emoji} {status_text}</span>
-            </div>
-            """)
-        
-        st.markdown("".join(achievement_list), unsafe_allow_html=True)
+                """)
+            
+            st.markdown("".join(achievement_list), unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
