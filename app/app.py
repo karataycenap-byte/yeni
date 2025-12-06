@@ -692,7 +692,7 @@ def create_garden_visualization(state: GameState):
     return fig
 
 # ============================================================================
-# STREAMLIT APP
+# STREAMLIT APP UTILITIES
 # ============================================================================
 
 def get_random_empty_coords(grid: List[List[Cell]], size: int) -> tuple[int, int]:
@@ -794,6 +794,10 @@ def display_how_to_play():
         st.session_state.game_started = True
         st.rerun()
 
+# ============================================================================
+# MAIN APPLICATION LOGIC
+# ============================================================================
+
 def main():
     st.set_page_config(page_title="Zihin Bahçesi", page_icon="🌱", layout="wide")
     
@@ -823,9 +827,12 @@ def main():
     
     if 'game_started' not in st.session_state:
         st.session_state.game_started = False
-        st.session_state.game_state = None # Başlangıçta state olmasın
+        st.session_state.game_state = None 
+        st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
     
-    # Yeni Oyun Başlatma Düğmesi (Ana sayfa düzeni için)
+    if 'selected_cell' not in st.session_state:
+        st.session_state.selected_cell = (3, 3)
+
     st.sidebar.title("Kontrol")
     if st.sidebar.button("🔄 Yeni Oyun Başlat", help="Mevcut oyunu sıfırlar.", type="secondary"):
         st.session_state.game_started = False
@@ -846,7 +853,7 @@ def main():
     
     # Üst Bilgi Metrikleri
     xp_needed = state.consciousness_level * 100
-    xp_progress = min(1.0, state.consciousness_xp / xp_needed) # XP progress 100% üzerinde gösterilmesin
+    xp_progress = min(1.0, state.consciousness_xp / xp_needed) 
     
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
@@ -860,9 +867,11 @@ def main():
     with col5:
         st.metric("Zaman", state.time_of_day.value)
     
-    # Aksiyon Mesajları
+    # Aksiyon Mesajları (HATA DÜZELTİLDİ: state.action_points kullanılıyor)
     if st.session_state.message:
         message_box = st.empty()
+        
+        # Mesajın türüne göre renkli kutu göster
         if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message or "dönüştürüldü" in st.session_state.message:
             message_box.success(st.session_state.message)
         elif "Yeterli AP" in st.session_state.message or "dolu" in st.session_state.message or "gerekli" in st.session_state.message:
@@ -870,17 +879,15 @@ def main():
         else:
             message_box.info(st.session_state.message)
 
-        # Tur sonunda mesajı silme mantığı
+        # Mesajı silme mantığı:
         if st.session_state.message == "Tur bitti! Bahçe gelişti.":
+             st.session_state.message = None # Tur bitiş mesajını hemen sil
+        elif state.action_points == 3 and st.session_state.message is not None:
+             # Eğer AP 3 ise (yeni tur başı demektir), mesajı temizle
              st.session_state.message = None
         else:
-             # Diğer mesajları aksiyon alındıktan sonra sil
-             if st.session_state.action_points < 3:
-                # Sadece başarılı aksiyonlarda mesajı koru, sonraki aksiyon veya turda silinir.
-                pass
-             else:
-                # Yeni tur başlangıcında mesajı sil
-                st.session_state.message = None
+             # Eğer AP kullanıldıysa, mesajı koru
+             pass
             
     
     col_left, col_right = st.columns([3, 2])
