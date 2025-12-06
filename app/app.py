@@ -1,146 +1,172 @@
 import streamlit as st
 import random
+import time
 
-# --- OYUN AYARLARI ---
+# --- OYUN İÇERİĞİ (TELEPATİ SENARYOLARI) ---
+# Buraya yüzlerce eğlenceli, absürt ve zorlayıcı başlık ekledik.
+SENARYOLAR = [
+    "Buzdolabında duran bozulmuş bir şey?",
+    "Eski sevgiliye atılacak tek kelimelik mesaj?",
+    "Zombi istilasında ilk ölecek kişi tipi?",
+    "Polis seni çevirse bagajda bulacağı en saçma şey?",
+    "Bir süper kahramanın en gereksiz süper gücü?",
+    "Düğünde takılacak en kötü takı?",
+    "Issız adaya düşsen yanına alacağın, hayatta kalmana yaramayacak bir eşya?",
+    "Bir korku filminde asla girmemen gereken oda?",
+    "İnsanların gizlice yaptığı iğrenç bir alışkanlık?",
+    "Sadece zenginlerin yediği saçma bir yiyecek?",
+    "Bir hayvan konuşabilseydi, hangisi en küfürbaz olurdu?",
+    "Sevgilinin telefonunda görmemen gereken bir uygulama?",
+    "Mezar taşına yazılacak komik bir söz?",
+    "Uzaylılar gelse ilk kaçıracağı ünlü?",
+    "Pizzanın üzerine konulabilecek en kötü malzeme?",
+    "Bir öğretmenin derste söylemekten bıktığı cümle?",
+    "Sadece Türkiye'de görebileceğin bir olay?",
+    "Gece 3'te mutfakta yenen şey?",
+    "Birinin yüzüne söylenmeyecek bir iltifat?",
+    "Çocuğuna asla koymayacağın bir isim?",
+    "Cehenneme gitsen çalacak şarkı?",
+    "İnternet geçmişin silinmese açıklayamayacağın arama?",
+    "En kötü hediye?",
+    "Bir erkeğin/kadının en itici özelliği?",
+    "Sarhoşken atılan mesajın konusu?",
+    "Hayatın bir film olsa türü ne olurdu?",
+    "En gereksiz icat?",
+    "Bir vampir olsan kanını içmeyeceğin kişi?",
+    "Asansörde yapılmayacak hareket?",
+    "Patronuna söylemek isteyip söyleyemediğin şey?",
+    "İlk buluşmada yapılmaması gereken bir hata?",
+    "Diyeti bozduran yiyecek?",
+    "Sihirli bir değneğin olsa yapacağın ilk saçmalık?",
+    "Bir rock grubun olsa adı ne olurdu?",
+    "Tuvalette kağıt bitse kullanacağın şey?",
+    "En sinir bozucu ses?",
+    "Bir renk söyle (Kırmızı ve Mavi hariç)?",
+    "3 harfli bir hayvan?",
+    "Babaannenin en çok kullandığı kelime?",
+    "Yere düşse bile alıp yiyeceğin şey?",
+    "Titanic batarken çalacak neşeli şarkı?",
+] * 5 # Listeyi uzatmak için çoğaltıyoruz
+random.shuffle(SENARYOLAR)
 
-KISILER = ["Sana", "Karşındakine", "İkiniz de"]
+# --- ARAYÜZ VE MANTIK ---
 
-# (Önceki 100+ görevinizin listesi burada yer alıyor, tekrar yazmıyorum.)
-GOREVLER_LISTESI = [
-    ("30 saniye boyunca karşındakine bir 'superstar' gibi imza dağıt.", 1),
-    ("Karşındakinin en sevdiği yemeği 5 saniye boyunca taklit et.", 1),
-    ("Karşındakine içten bir iltifat et (aynı iltifat daha önce yapılmamış olmalı).", 2),
-    ("Eğer bir film çekseydiniz, başlık, ana karakter ve konusu ne olurdu?", 3),
-    ("Hayatında yaptığın ve şu an gülerek hatırladığın bir hatayı anlat.", 3),
-    ("1 dakika boyunca karşıdakinin sana verdiği bir kelimeyi kullanmadan, bir konu hakkında konuş.", 2),
-    ("En utanç verici anını kısaca, ama çok neşeli bir şekilde anlat.", 1),
-] * 20 
-random.shuffle(GOREVLER_LISTESI)
+# Sayfa Yapılandırması
+st.set_page_config(page_title="Telepati Testi", page_icon="🧠", layout="centered")
 
-# --- OYUN MANTIĞI VE WEB ARAYÜZÜ (Streamlit) ---
-
-# Session State (Veri Koruma)
-if 'puanlar' not in st.session_state:
-    st.session_state.puanlar = {"Oyuncu 1": 0, "Oyuncu 2": 0}
-if 'sira' not in st.session_state:
-    st.session_state.sira = 1
-if 'gorev_aktif' not in st.session_state:
-    st.session_state.gorev_aktif = False
-if 'kullanilmis_gorevler_indeks' not in st.session_state:
-    st.session_state.kullanilmis_gorevler_indeks = set()
-if 'son_gorev_tuple' not in st.session_state:
-    st.session_state.son_gorev_tuple = (None, 0)
-
-def gorev_sonucu(basarili):
-    """Görevi tamamlar, puanı ekler ve sırayı değiştirir."""
-    puan_ekle = st.session_state.son_gorev_tuple[1] if basarili else 0
-    oyuncu_key = f"Oyuncu {st.session_state.sira}"
-    st.session_state.puanlar[oyuncu_key] += puan_ekle
-    
-    # Sıra değişimi ve sıfırlama
-    st.session_state.sira = 3 - st.session_state.sira
-    st.session_state.gorev_aktif = False
-    
-    st.rerun()
-
-def zar_at():
-    """Zar atar ve yeni görevi seçer."""
-    
-    if st.session_state.gorev_aktif:
-        st.warning("Lütfen önce mevcut görevi tamamlayın!")
-        return
-
-    st.session_state.gorev_aktif = True
-    
-    # Kullanılmamış görev bulma mantığı
-    kullanilmayan_gorev_indeksleri = [i for i in range(len(GOREVLER_LISTESI)) if i not in st.session_state.kullanilmis_gorevler_indeks]
-
-    if not kullanilmayan_gorev_indeksleri:
-        st.balloons()
-        st.success("🎉 Tüm görevler tamamlandı! Oyun bitti!")
-        return
-
-    secilen_indeks = random.choice(kullanilmayan_gorev_indeksleri)
-    st.session_state.kullanilmis_gorevler_indeks.add(secilen_indeks)
-    
-    secilen_gorev_tuple = GOREVLER_LISTESI[secilen_indeks]
-    
-    secilen_kisi = random.choice(KISILER)
-    gorev_metni, gorev_puani = secilen_gorev_tuple
-    st.session_state.son_gorev_tuple = secilen_gorev_tuple
-
-    # GÖREVİ GÖSTEREN ESTETİK KISIM
-    st.markdown("<br>", unsafe_allow_html=True) 
-    
-    # Kişi ve Puan Bilgisi (Daha Dikkat Çekici)
-    if st.session_state.sira == 1:
-        kisi_rengi = "#ff6b6b" # Parlak Kırmızı
-        sira_rengi = "#e74c3c"
-    else:
-        kisi_rengi = "#4cd137" # Parlak Yeşil
-        sira_rengi = "#2ecc71"
-        
-    st.markdown(f"""
-    <div style='background-color: #34495e; padding: 10px; border-radius: 10px; border-left: 5px solid {sira_rengi};'>
-        <p style='font-size: 16px; margin: 0; color: #ecf0f1;'>GÖREV PUANI: <span style='font-weight: bold; color: yellow;'>{gorev_puani}</span></p>
-        <h4 style='color: {kisi_rengi}; margin: 5px 0 0 0;'>KİŞİ: {secilen_kisi}</h4>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Ana Görev Metni (Büyük ve Vurgulu)
-    st.markdown(f"## 💥 {gorev_metni}", unsafe_allow_html=True)
-    st.markdown("---")
-
-
-# --- ARAYÜZ BAŞLANGICI VE STİL AYARLARI ---
-
-# Sayfa ayarları (Koyu Tema ve Genişlik)
-st.set_page_config(layout="wide", page_title="🌟 Eğlenceli Görev Zarı")
-
-# Başlık ve Açıklama (Gradient ile)
+# CSS ile Modern Tasarım
 st.markdown("""
 <style>
-    .big-title {
-        font-size: 36px;
-        font-weight: bold;
-        color: #f1c40f; /* Altın Rengi */
-        text-shadow: 2px 2px #34495e;
+    .main-header {
+        font-size: 40px; 
+        font-weight: 800; 
+        text-align: center; 
+        background: -webkit-linear-gradient(45deg, #00C9FF, #92FE9D);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 20px;
     }
-    .stButton>button {
-        height: 3em;
+    .card {
+        background-color: #262730;
+        padding: 30px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        border: 2px solid #4B4B4B;
+        margin-bottom: 20px;
+    }
+    .prompt-text {
+        font-size: 28px;
         font-weight: bold;
-        font-size: 16px;
+        color: #ffffff;
+        line-height: 1.4;
+    }
+    .score-box {
+        font-size: 20px;
+        font-weight: bold;
+        color: #FFD700;
+        text-align: center;
+        padding: 10px;
+        border: 1px dashed #FFD700;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    /* Butonları büyütme */
+    .stButton>button {
+        width: 100%;
+        height: 60px;
+        font-size: 20px;
+        font-weight: bold;
+        border-radius: 12px;
     }
 </style>
-<p class='big-title'>🌟 EĞLENCELİ GÖREV ZARI 🌟</p>
 """, unsafe_allow_html=True)
 
+# Session State
+if 'score' not in st.session_state:
+    st.session_state.score = 0
+if 'rounds' not in st.session_state:
+    st.session_state.rounds = 0
+if 'current_prompt' not in st.session_state:
+    st.session_state.current_prompt = None
+if 'game_active' not in st.session_state:
+    st.session_state.game_active = False
 
-# Puanlar Tablosu (Daha Estetik ve Emojili)
-col1, col2 = st.columns(2)
-col1.markdown(f"### 🔴 P1: **{st.session_state.puanlar['Oyuncu 1']}** Puan", unsafe_allow_html=True)
-col2.markdown(f"### 🟢 P2: **{st.session_state.puanlar['Oyuncu 2']}** Puan", unsafe_allow_html=True)
+# Fonksiyonlar
+def new_round():
+    st.session_state.current_prompt = random.choice(SENARYOLAR)
+    st.session_state.game_active = True
 
+def result(match):
+    st.session_state.rounds += 1
+    if match:
+        st.session_state.score += 1
+        st.balloons()
+    st.session_state.game_active = False
+    st.rerun()
 
-# Sıra Bilgisi
-sira_rengi = "#e74c3c" if st.session_state.sira == 1 else "#2ecc71"
-st.markdown(f"""
-<div style='text-align: center; padding: 10px; background-color: {sira_rengi}; border-radius: 10px; margin-bottom: 20px;'>
-    <h3 style='color: white; margin: 0;'>➡️ SIRA: OYUNCU {st.session_state.sira}</h3>
-</div>
-""", unsafe_allow_html=True)
+# --- OYUN GÖRÜNÜMÜ ---
 
+st.markdown('<p class="main-header">🧠 AYNI FREKANS</p>', unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>Aynı anda aynı cevabı verin!</p>", unsafe_allow_html=True)
 
-# Zar Atma Butonu veya Görev Kontrol Butonları
-if not st.session_state.gorev_aktif:
-    # Zar At butonu
-    st.button(f"✨ ZAR AT & GÖREV BUL", on_click=zar_at, use_container_width=True, type="primary")
+# Skor Tablosu (Uyum Oranı)
+if st.session_state.rounds > 0:
+    uyum_orani = int((st.session_state.score / st.session_state.rounds) * 100)
+    st.markdown(f'<div class="score-box">UYUM ORANI: %{uyum_orani} <br> ({st.session_state.score} / {st.session_state.rounds})</div>', unsafe_allow_html=True)
+    st.progress(uyum_orani / 100)
 else:
-    # Görev aktifken, görev detaylarını ve puanlama butonlarını göster
-    zar_at() 
+    st.markdown('<div class="score-box">HENÜZ BAŞLAMADI</div>', unsafe_allow_html=True)
 
-    col_basarili, col_basarisiz = st.columns(2)
-    with col_basarili:
-        st.button("✅ GÖREV BAŞARILI (+Puan)", on_click=lambda: gorev_sonucu(True), use_container_width=True, type="primary")
-    with col_basarisiz:
-        st.button("❌ GÖREV BAŞARISIZ (0 Puan)", on_click=lambda: gorev_sonucu(False), use_container_width=True, type="secondary")
+# Oyun Alanı
+if not st.session_state.game_active:
+    # Başlat Butonu
+    if st.button("🚀 FREKANSI YAKALA (BAŞLA)", type="primary"):
+        new_round()
+        st.rerun()
+else:
+    # Soru Kartı
+    st.markdown(f"""
+    <div class="card">
+        <p style="color: #FF4B4B; font-weight: bold; font-size: 18px;">3 SANİYE İÇİNDE SÖYLE!</p>
+        <p class="prompt-text">{st.session_state.current_prompt}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Geri Sayım Efekti (Metin olarak)
+    st.info("💡 İPUCU: 3'ten geriye sesli sayın ve aynı anda bağırın!")
+
+    # Sonuç Butonları
+    col1, col2 = st.columns(2)
+    with col1:
+        st.button("✅ AYNI ŞEYİ DEDİK!", on_click=lambda: result(True), type="primary")
+    with col2:
+        st.button("❌ FARKLI ŞEYLER...", on_click=lambda: result(False))
+
+# Sıfırlama
+st.markdown("---")
+if st.button("🔄 Skoru Sıfırla"):
+    st.session_state.score = 0
+    st.session_state.rounds = 0
+    st.session_state.game_active = False
+    st.rerun()
