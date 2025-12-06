@@ -1,223 +1,242 @@
 import streamlit as st
 import random
-import time # (Zaman fonksiyonları şu an kullanılmasa da ileride lazım olabilir diye tutuyorum)
 
 # --- OYUN VERİLERİ ---
 
-# KADER KARTLARI (Rastlantısal Etkiler)
-KADER_KARTLARI = {
-    "Rüya": ("Duygu", 5, "Gizemli bir rüya, duygusal sezgilerini keskinleştirdi."),
-    "Hata": ("Zeka", -5, "Küçük bir mantık hatası, güvenini sarstı."),
-    "Bağ": ("Etki", 10, "Yeni bir sosyal bağlantı kurdun, etki alanın genişledi."),
-    "Yorgunluk": ("Güç", -10, "Aşırı çaba, fiziksel gücünü tüketti."),
-    "İlham": ("Zeka", 10, "Anlık bir aydınlanma, zekanı artırdı."),
-    "Kayb": ("Duygu", -10, "Yaşanan bir kayıp, duygusal derinliğini azalttı.")
-}
+# 4 BASAMAKLI GİZLİ ŞİFRE (Her oyun başlangıcında rastgele belirlenecek)
+def generate_password():
+    # 1'den 9'a kadar birbirinden farklı 4 rakam
+    return random.sample(range(1, 10), 4)
 
-# KRİTİK ANLAR (Karar Noktaları)
-KRITIK_ANLAR = [
-    ("Bir sırrı açığa çıkarmak zorundasın. Başarı için hangi kaynağı feda edersin?", 70),
-    ("Bir meydan okumayı kırmak üzeresin. Hangi kaynağı en yüksek riskle kullanırsın?", 55),
-    ("Birine güvenmek mi, yoksa şüphelenmek mi? Karar anın geldi.", 65),
-    ("Yanlış giden bir planı düzeltmek için neyden vazgeçersin?", 80),
-    ("Kendini mi, yoksa başkasını mı kurtarırsın? Feda zorunluluğu var.", 75)
-]
+# 4 ASİSTAN (Her birinin bir YALANCI (False) veya GERÇEKÇİ (True) olma durumu rastgele belirlenir)
+def generate_assistants():
+    names = ["Ajan K", "Mühendis Z", "Operatör P", "Gözcü M"]
+    # 2 Yalancı, 2 Gerçekçi atama (ya da 1/3, 3/1 rastgele olabilir)
+    is_truthful = random.sample([True] * 2 + [False] * 2, 4) 
+    
+    assistants = {}
+    for i, name in enumerate(names):
+        assistants[name] = {"truthful": is_truthful[i], "digit": i + 1, "code_index": i, "questioned": False}
+    return assistants
 
 # --- SAYFA AYARLARI ve CSS ---
-st.set_page_config(page_title="Kaderin Mimarı", page_icon="🎲", layout="centered")
+st.set_page_config(page_title="SIĞINAK", page_icon="🔒", layout="centered")
 
 st.markdown("""
 <style>
-    .main {background-color: #0A0A1F; color: #E0E0E0;} 
-    .title-kader {
-        font-size: 38px; font-weight: bold; text-align: center;
-        background: linear-gradient(90deg, #A8C0FF, #3F2B96);
+    .main {background-color: #0A192F; color: #E0E0E0;} 
+    .title-sığınak {
+        font-size: 42px; font-weight: bold; text-align: center;
+        background: linear-gradient(90deg, #66FCF1, #45A29E); /* Siber Mavi Tonları */
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        letter-spacing: 2px;
+        letter-spacing: 3px;
     }
-    .profile-card {
-        background-color: #1A1A3A; padding: 20px; border-radius: 10px; margin-bottom: 20px;
+    .asistan-card {
+        background-color: #1F2833; 
+        padding: 15px; border-radius: 8px; margin-bottom: 10px;
+        box-shadow: 0 0 10px rgba(102, 252, 241, 0.2);
+        border-left: 5px solid #66FCF1;
+        cursor: pointer;
     }
-    .kader-card {
-        background-color: #4A148C; /* Mor */
-        padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;
-        box-shadow: 0 0 10px rgba(74, 20, 140, 0.7);
+    .asistan-card:hover {
+        background-color: #2C3847;
     }
-    .kritik-card {
-        background-color: #2E004B; 
-        padding: 25px; border-radius: 8px; margin-top: 15px; border: 1px solid #7B1FA2;
+    .cevap-card {
+        padding: 20px; border-radius: 10px; margin-top: 15px; font-size: 18px;
+        border: 2px solid #45A29E;
     }
     .stButton>button {
-        height: 55px; font-size: 16px; border-radius: 8px; font-weight: bold;
+        height: 50px; font-size: 16px; border-radius: 8px; font-weight: bold;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # --- SESSION STATE (Durum Yönetimi) ---
-if 'profil' not in st.session_state: 
-    st.session_state.profil = {"Güç": 50, "Zeka": 50, "Duygu": 50, "Etki": 50}
-if 'tur' not in st.session_state: st.session_state.tur = 0
-if 'max_tur' not in st.session_state: st.session_state.max_tur = 12
 if 'oyun_durumu' not in st.session_state: st.session_state.oyun_durumu = "baslangic"
-if 'mevcut_kritik_an' not in st.session_state: st.session_state.mevcut_kritik_an = None
-if 'kritik_zorluk' not in st.session_state: st.session_state.kritik_zorluk = 0
-if 'kader_etkisi' not in st.session_state: st.session_state.kader_etkisi = None
-if 'log' not in st.session_state: st.session_state.log = []
+if 'password' not in st.session_state: st.session_state.password = []
+if 'assistants' not in st.session_state: st.session_state.assistants = {}
+if 'mevcut_asistan' not in st.session_state: st.session_state.mevcut_asistan = None
+if 'soru_sayisi' not in st.session_state: st.session_state.soru_sayisi = 0
+if 'cevap_log' not in st.session_state: st.session_state.cevap_log = []
+if 'tahmin_girildi' not in st.session_state: st.session_state.tahmin_girildi = False
+if 'tahmin' not in st.session_state: st.session_state.tahmin = ["", "", "", ""]
 
 # --- FONKSİYONLAR ---
 
 def oyunu_baslat():
-    st.session_state.profil = {"Güç": 50, "Zeka": 50, "Duygu": 50, "Etki": 50}
-    st.session_state.tur = 1
-    st.session_state.oyun_durumu = "kader_cek"
-    st.session_state.log = []
-    yeni_tur()
+    st.session_state.password = generate_password()
+    st.session_state.assistants = generate_assistants()
+    st.session_state.oyun_durumu = "oyun"
+    st.session_state.mevcut_asistan = None
+    st.session_state.soru_sayisi = 0
+    st.session_state.cevap_log = []
+    st.session_state.tahmin_girildi = False
+    st.session_state.tahmin = ["", "", "", ""]
+    st.rerun()
 
-def yeni_tur():
-    if st.session_state.tur > st.session_state.max_tur:
-        st.session_state.oyun_durumu = "sonuc"
+def asistan_sec(asistan_adi):
+    if st.session_state.assistants[asistan_adi]["questioned"]:
+        st.warning(f"{asistan_adi} ile zaten konuştunuz. Her asistana sadece tek bir soru sorabilirsiniz.")
         return
+    st.session_state.mevcut_asistan = asistan_adi
+    st.session_state.oyun_durumu = "soru"
+    st.rerun()
+
+def cevabi_al(soru_tipi):
+    asistan_adi = st.session_state.mevcut_asistan
+    asistan = st.session_state.assistants[asistan_adi]
+    
+    # 1. Şifre Rakamı Nedir? (En direkt soru)
+    if soru_tipi == 1:
+        dogru_cevap = st.session_state.password[asistan["code_index"]]
+        soru = f"Şifrenin {asistan['code_index']+1}. basamağı nedir?"
         
-    # HATA DÜZELTME BÖLÜMÜ: SÖZLÜK ÖĞELERİ İKİ PARÇADAN OLUŞUR (ANAHTAR VE DEĞER)
-    # Bu yüzden, seçilen öğeyi iki değişkene atamamız gerekiyor.
+        if asistan["truthful"]:
+            cevap = f"{dogru_cevap}"
+        else:
+            # Yalancı: 1-9 arası farklı bir rakam söyler (Doğru cevabı hariç)
+            yanlis_secenekler = [r for r in range(1, 10) if r != dogru_cevap]
+            cevap = f"{random.choice(yanlis_secenekler)}"
+
+    # 2. Şifrede Tek Rakam Var mı? (Boolean soru)
+    elif soru_tipi == 2:
+        dogru_cevap = any(d % 2 != 0 for d in st.session_state.password)
+        soru = "Şifrede hiç tek rakam var mı?"
+        
+        if asistan["truthful"]:
+            cevap = "Evet" if dogru_cevap else "Hayır"
+        else:
+            # Yalancı: Her zaman tersini söyler
+            cevap = "Hayır" if dogru_cevap else "Evet"
+
+    # 3. Sen Yalancı mısın? (Paradoks sorusu - Gerçekçi/Yalancı'yı ortaya çıkarmaya yarar)
+    elif soru_tipi == 3:
+        soru = "Sen bir yalancı mısın?"
+        # Gerçekçi her zaman 'Hayır' der (Çünkü yalan söylemez)
+        # Yalancı her zaman 'Hayır' der (Çünkü yalan söylediği için 'Evet' dese doğru söylemiş olur)
+        cevap = "Hayır"
+
     
-    # random.choice() ile rastgele bir (kart_isim, (özellik, değer, açıklama)) tuple'ı çekilir.
-    kart_isim, kart_verisi = random.choice(list(KADER_KARTLARI.items()))
-    
-    # Veri paketini açıyoruz
-    ozellik, deger, aciklama = kart_verisi
-    
-    st.session_state.kader_etkisi = (kart_isim, ozellik, deger, aciklama)
-    
-    # 2. Kritik Anı Çek
-    an, zorluk = random.choice(KRITIK_ANLAR)
-    st.session_state.mevcut_kritik_an = an
-    st.session_state.kritik_zorluk = zorluk
-    
-    st.session_state.oyun_durumu = "kader_cek"
+    # Güncel Durumu Kaydet
+    st.session_state.assistants[asistan_adi]["questioned"] = True
+    st.session_state.cevap_log.append({
+        "asistan": asistan_adi,
+        "soru": soru,
+        "cevap": cevap,
+        "yalancı_mi": not asistan["truthful"] # Logda belirtmiyoruz, oyuncu bulacak
+    })
+    st.session_state.soru_sayisi += 1
+    st.session_state.oyun_durumu = "oyun" # Tekrar asistan seçme ekranına dön
+    st.session_state.mevcut_asistan = None
     st.rerun()
 
-def kader_etkisini_uygula():
-    if st.session_state.oyun_durumu != "kader_cek": return
-    
-    _, ozellik, deger, _ = st.session_state.kader_etkisi
-    
-    # Profili güncelle (0'ın altına düşmesini engeller)
-    st.session_state.profil[ozellik] = max(0, st.session_state.profil[ozellik] + deger)
-    # Log kaydı
-    st.session_state.log.append((st.session_state.tur, "KADER", ozellik, deger))
-    
-    st.session_state.oyun_durumu = "kritik_an"
-    st.rerun()
+def tahmini_kontrol_et():
+    try:
+        tahmin_rakamlar = [int(x) for x in st.session_state.tahmin]
+        if len(tahmin_rakamlar) != 4 or any(r < 1 or r > 9 for r in tahmin_rakamlar):
+             st.error("Lütfen 1-9 arası 4 basamaklı geçerli bir şifre girin.")
+             return
+    except ValueError:
+        st.error("Lütfen tüm alanlara sayı girdiğinizden emin olun.")
+        return
 
-def kaynagi_feda_et(kaynak_adi):
-    if st.session_state.oyun_durumu != "kritik_an": return
-    
-    kaynak_degeri = st.session_state.profil[kaynak_adi]
-    zorluk = st.session_state.kritik_zorluk
-    
-    # Başarı Kontrolü: % başarı şansı = (kaynak_degeri / zorluk) * 100
-    sans = min(100, int((kaynak_degeri / zorluk) * 100))
-    basarili = random.randint(1, 100) <= sans
-    
-    # Sonuç ve Etki
-    if basarili:
-        etki = f"Kritik Anı **başarıyla** yönettin. Feda edilen kaynak ({kaynak_adi}) %50 geri kazanıldı. (+{kaynak_degeri // 2})"
-        st.session_state.profil[kaynak_adi] += (kaynak_degeri // 2)
+    if tahmin_rakamlar == st.session_state.password:
+        st.session_state.oyun_durumu = "kazandi"
     else:
-        etki = f"**Başarısız** oldun. Kaynak ({kaynak_adi}) tamamen tükendi. (-{kaynak_degeri})"
-        st.session_state.profil[kaynak_adi] = 0
-    
-    # Log ve Tur Geçişi
-    st.session_state.log.append((st.session_state.tur, "KRİTİK", kaynak_adi, basarili))
-    st.session_state.tur += 1
-    st.session_state.oyun_durumu = "kritik_sonuc"
-    st.session_state.sonuc_mesaji = etki
-    st.session_state.sonuc_basarili = basarili
+        st.session_state.oyun_durumu = "kaybetti"
     st.rerun()
 
 # --- ARAYÜZ ---
 
-st.markdown('<p class="title-kader">KADERİN MİMARI</p>', unsafe_allow_html=True)
+st.markdown('<p class="title-sığınak">SIĞINAK</p>', unsafe_allow_html=True)
 
 # 1. BAŞLANGIÇ EKRANI
 if st.session_state.oyun_durumu == "baslangic":
-    st.markdown("### 🎲 Oyuna Başla")
-    st.info("Kaderin Mimarı, 12 turluk bir varoluşsal inşadır. Her turda kaderin getirdiklerini kabul edecek ve kritik anlarda bir kaynağını feda edeceksin.")
-    st.button("MİMARLIĞA BAŞLA", on_click=oyunu_baslat, type="primary", use_container_width=True)
-
-# 2. OYUN EKRANI
-else:
-    # A. PROFİL GÖSTERGESİ
-    st.markdown("---")
-    st.markdown(f"### ⚙️ Profil Durumu (Tur {st.session_state.tur} / {st.session_state.max_tur})")
+    st.markdown("### 🔒 Şifreyi Çöz ve Kaç")
+    st.info("""
+    Bir sığınağa kilitlendiniz. Dışarı çıkmak için 4 basamaklı gizli şifreyi çözmeniz gerekiyor. 
     
-    colG, colZ, colD, colE = st.columns(4)
-    cols = [colG, colZ, colD, colE]
-    ozellikler = ["Güç", "Zeka", "Duygu", "Etki"]
+    4 asistanın her biri şifrenin bir basamağını biliyor. Ancak:
     
-    for i, oz in enumerate(ozellikler):
-        cols[i].metric(oz, st.session_state.profil[oz], help=f"{ozellikler[i]} Profili")
-        cols[i].progress(st.session_state.profil[oz] / 100) # İlerleme Çubuğu
+    * **2 asistan** her zaman **doğru** söyler (Gerçekçi).
+    * **2 asistan** her zaman **yalan** söyler (Yalancı).
+    * Her asistana **sadece bir kez** soru sorabilirsiniz.
+    
+    Mantık zincirini kurun, yalancıları bulun ve şifreyi çözün.
+    """)
+    st.button("SIĞINAĞA GİR", on_click=oyunu_baslat, type="primary", use_container_width=True)
 
-    # B. KADER KARTI ÇEKİM AŞAMASI
-    if st.session_state.oyun_durumu == "kader_cek":
-        kart_isim, ozellik, deger, aciklama = st.session_state.kader_etkisi
-        isaret = "+" if deger > 0 else ""
-        
-        st.markdown(f"""
-        <div class="kader-card">
-            <h4>KADER KARTI: {kart_isim}</h4>
-            <p style='color: #CFD8DC;'>{aciklama}</p>
-            <h3 style='color: #FFEB3B;'>{ozellik} {isaret}{deger}</h3>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.button("KADERİ KABUL ET", on_click=kader_etkisini_uygula, type="secondary", use_container_width=True)
+# 2. KAZANDI EKRANI
+elif st.session_state.oyun_durumu == "kazandi":
+    st.balloons()
+    st.success(f"**TEBRİKLER MİMAR!** 🏆 Kapıyı başarıyla açtınız. Şifre: {''.join(map(str, st.session_state.password))}")
+    st.button("YENİ SIĞINAK", on_click=oyunu_baslat, type="primary", use_container_width=True)
 
-    # C. KRİTİK AN AŞAMASI
-    elif st.session_state.oyun_durumu == "kritik_an":
-        
-        st.markdown(f"""
-        <div class="kritik-card">
-            <h4>KRİTİK AN</h4>
-            <p style='font-size: 18px; font-weight: bold; color: #E8D7FF;'>{st.session_state.mevcut_kritik_an}</p>
-            <p style='font-size: 14px; color: #FF9800;'>Gereken Zorluk Değeri: {st.session_state.kritik_zorluk}</p>
-        </div>
-        """)
-        
-        st.info("Hangi kaynağı feda ederek bu anı yöneteceksin? (Mevcut değerler başarı şansını belirler, ancak tükenme riski vardır.)")
-        
-        cols_karar = st.columns(4)
-        for i, oz in enumerate(ozellikler):
-            deger = st.session_state.profil[oz]
-            cols_karar[i].button(f"({deger}) {oz} Feda Et", on_click=lambda oz=oz: kaynagi_feda_et(oz), key=f"feda_{oz}", use_container_width=True)
+# 3. KAYBETTİ EKRANI
+elif st.session_state.oyun_durumu == "kaybetti":
+    st.error(f"**KİLİTLENDİNİZ!** 💥 Girdiğiniz şifre yanlıştı. Doğru şifre: {''.join(map(str, st.session_state.password))}")
+    st.button("TEKRAR DENE", on_click=oyunu_baslat, type="primary", use_container_width=True)
 
-    # D. KRİTİK AN SONUCU AŞAMASI
-    elif st.session_state.oyun_durumu == "kritik_sonuc":
-        if st.session_state.sonuc_basarili:
-            st.success(f"BAŞARILI! ✅ {st.session_state.sonuc_mesaji}")
+# 4. SORU SORMA EKRANI
+elif st.session_state.oyun_durumu == "soru":
+    asistan_adi = st.session_state.mevcut_asistan
+    st.subheader(f"💬 {asistan_adi}'a Sorulacak Soru")
+    st.warning("Unutmayın: Sadece TEK BİR soru sorabilirsiniz.")
+    
+    col_1, col_2, col_3 = st.columns(3)
+    
+    with col_1:
+        st.button("1. Şifre Basamağını Sor", on_click=lambda: cevabi_al(1), use_container_width=True)
+    with col_2:
+        st.button("2. Şifre Hakkında Genel Soru Sor", on_click=lambda: cevabi_al(2), use_container_width=True)
+    with col_3:
+        st.button("3. 'Sen Yalancı mısın?' diye sor", on_click=lambda: cevabi_al(3), use_container_width=True)
+
+# 5. OYUN EKRANI (Asistan Seçimi ve Log)
+elif st.session_state.oyun_durumu == "oyun":
+    
+    # Log Gösterimi
+    if st.session_state.cevap_log:
+        st.markdown("### 📜 Sorgu Kaydı")
+        for log in st.session_state.cevap_log:
+            st.markdown(f"""
+            <div class="cevap-card" style="background-color: {'#0B4F6C' if log['cevap'] == 'Hayır' else '#116530'};">
+                <span style="font-weight: bold;">{log['asistan']}:</span> {log['soru']}
+                <br>
+                <span style="font-weight: bold;">Yanıtı:</span> {log['cevap']}
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown("---")
+
+    # Asistan Seçimi
+    st.markdown("### 👤 Konuşulacak Asistanı Seç")
+    asistan_cols = st.columns(4)
+    asistan_names = list(st.session_state.assistants.keys())
+    
+    for i, name in enumerate(asistan_names):
+        is_questioned = st.session_state.assistants[name]["questioned"]
+        
+        button_label = f"{name} ({st.session_state.assistants[name]['code_index']+1}. Basamak)"
+        
+        if is_questioned:
+            asistan_cols[i].button(button_label, disabled=True, use_container_width=True, help="Zaten sorgulandı.")
         else:
-            st.error(f"BAŞARISIZ! ❌ {st.session_state.sonuc_mesaji}")
-            
-        st.button("SONRAKİ TURA GEÇ", on_click=yeni_tur, type="primary", use_container_width=True)
+            asistan_cols[i].button(button_label, on_click=lambda name=name: asistan_sec(name), use_container_width=True, type="secondary")
 
-# 3. SONUÇ EKRANI (Oyun Bitti)
-if st.session_state.oyun_durumu == "sonuc":
     st.markdown("---")
-    st.markdown("## 📜 VAROLUŞSAL MİMARİ RAPORU")
     
-    final_profil = st.session_state.profil
-    st.info("12 Tur sonunda oluşan nihai varoluşsal mimariniz:")
+    # ŞİFRE TAHMİN ALANI
+    st.subheader("🔑 Şifre Tahmini")
+    st.info(f"4 asistana da ({len(st.session_state.assistants)}) soru sorduktan sonra veya yeterli bilgiye ulaştığınızı düşündüğünüzde tahminde bulunun.")
     
-    st.markdown(f"**Güç:** {final_profil['Güç']} | **Zeka:** {final_profil['Zeka']} | **Duygu:** {final_profil['Duygu']} | **Etki:** {final_profil['Etki']}")
-
-    # Nihai Yorum
-    # Sözlükteki en yüksek/en düşük değeri bulma
-    en_yuksek = max(final_profil, key=final_profil.get)
-    en_dusuk = min(final_profil, key=final_profil.get)
-
-    st.warning(f"**Sonuç Yorumu:** Profili en çok beslediğin alan **{en_yuksek}** oldu. Yaşadığın kayıplar ve rastlantılarla en çok tükettiğin alan ise **{en_dusuk}** oldu. Senin kaderin, bilinçli tercihlerinin ve kabul ettiğin rastlantıların birleşimidir.")
-
-    st.button("YENİ BİR KADER YARAT", on_click=oyunu_baslat, type="primary", use_container_width=True)
+    tahmin_cols = st.columns(4)
+    
+    for i in range(4):
+        st.session_state.tahmin[i] = tahmin_cols[i].text_input(f"Basamak {i+1}", 
+                                                               max_chars=1, 
+                                                               key=f"tahmin_{i}", 
+                                                               value=st.session_state.tahmin[i],
+                                                               help="Şifre 1 ile 9 arasında bir rakamdır.")
+    
+    st.button("KİLİDİ AÇ", on_click=tahmini_kontrol_et, type="primary", use_container_width=True)
