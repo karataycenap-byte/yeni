@@ -6,7 +6,7 @@ from typing import List, Dict
 import plotly.graph_objects as go
 
 # ============================================================================
-# GAME CONSTANTS & ENUMS (Değişmedi)
+# GAME CONSTANTS & ENUMS
 # ============================================================================
 
 class CellType(Enum):
@@ -28,7 +28,7 @@ class TimeOfDay(Enum):
     NIGHT = "Gece"
 
 # ============================================================================
-# DATA CLASSES (Değişmedi)
+# DATA CLASSES
 # ============================================================================
 
 @dataclass
@@ -66,7 +66,7 @@ class GameState:
             self.achievements = []
 
 # ============================================================================
-# GAME CONFIGURATION (Değişmedi)
+# GAME CONFIGURATION
 # ============================================================================
 
 CELL_CONFIGS = {
@@ -126,7 +126,7 @@ ACHIEVEMENTS_INFO = {
 }
 
 # ============================================================================
-# UTILITY FUNCTIONS (Değişmedi)
+# UTILITY FUNCTIONS
 # ============================================================================
 
 def get_cell_config(cell_type: CellType) -> Dict:
@@ -174,7 +174,7 @@ def initialize_game():
     return state
 
 # ============================================================================
-# GAME ENGINE (Değişmedi)
+# GAME ENGINE
 # ============================================================================
 
 class MindGardenEngine:
@@ -637,7 +637,7 @@ class MindGardenEngine:
         return stats
 
 # ============================================================================
-# VISUALIZATION (Değişmedi)
+# VISUALIZATION
 # ============================================================================
 
 def create_garden_visualization(state: GameState):
@@ -722,7 +722,7 @@ def create_garden_visualization(state: GameState):
     return fig
 
 # ============================================================================
-# ACTION HANDLER (Değişmedi)
+# ACTION HANDLER
 # ============================================================================
 
 def handle_action(action_type, x, y, thought_type=None):
@@ -752,7 +752,7 @@ def handle_action(action_type, x, y, thought_type=None):
     st.session_state.message = msg
 
 # ============================================================================
-# HOW TO PLAY (DISPLAY) FUNCTION (Değişmedi)
+# HOW TO PLAY (DISPLAY) FUNCTION
 # ============================================================================
 
 def display_how_to_play():
@@ -818,9 +818,10 @@ def display_how_to_play():
 # MAIN APPLICATION LOGIC
 # ============================================================================
 
-# Callback fonksiyonları (Butonlar için)
-def set_action(action_type: str, thought_type: CellType = None):
-    """Buton aksiyonunu session state'e kaydeder."""
+# Callback fonksiyonları: Tıklanan aksiyonu session_state'e kaydeder
+def set_action_callback(action_type: str, thought_type: CellType = None):
+    """Buton aksiyonunu session state'e kaydeder ve formu submit etmeye zorlar."""
+    st.session_state.action_clicked = True
     st.session_state.next_action = action_type
     st.session_state.thought_type = thought_type
 
@@ -857,19 +858,21 @@ def main():
         st.session_state.game_state = None 
         st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
         st.session_state.selected_cell = (3, 3)
-        st.session_state.next_action = None # Yeni: Buton aksiyonunu tutacak değişken
-        st.session_state.thought_type = None # Yeni: Ekleme aksiyonu için düşünce türünü tutacak değişken
+        st.session_state.next_action = None 
+        st.session_state.thought_type = None 
+        st.session_state.action_clicked = False # Yeni: Aksiyon tıklandı mı?
     
     # Yeni Oyun Başlatma Düğmesi
     st.sidebar.title("Kontrol")
     if st.sidebar.button("🔄 Yeni Oyun Başlat", help="Mevcut oyunu sıfırlar.", type="secondary"):
         st.session_state.clear()
+        # st.session_state'i tamamen temizledikten sonra yeniden başlatmak için gerekli minimum değerler
         st.session_state.game_started = False
-        st.session_state.game_state = None
-        st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
         st.session_state.selected_cell = (3, 3)
+        st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
         st.session_state.next_action = None
         st.session_state.thought_type = None
+        st.session_state.action_clicked = False
         st.rerun()
 
     # Oyun Başlangıç Ekranı
@@ -879,7 +882,6 @@ def main():
 
     # Oyun Başladı
     state = st.session_state.game_state
-    engine = MindGardenEngine(state)
     
     st.title("🌱 ZİHİN BAHÇESİ")
     st.caption("Zihninizi büyütün, kaygıları yönetin, bilincinizi yükseltin")
@@ -902,22 +904,13 @@ def main():
     
     # Aksiyon Mesajları
     if st.session_state.message:
-        message_box = st.empty()
-        
+        # Mesajı bir placeholder'da gösteriyoruz, aksi halde form submit'ten sonra kaybolmazdı.
         if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message or "dönüştürüldü" in st.session_state.message or "Tur bitti" in st.session_state.message:
-            message_box.success(st.session_state.message)
+            st.success(st.session_state.message)
         elif "Yeterli AP" in st.session_state.message or "dolu" in st.session_state.message or "gerekli" in st.session_state.message or "değil" in st.session_state.message:
-            message_box.warning(st.session_state.message)
+            st.warning(st.session_state.message)
         else:
-            message_box.info(st.session_state.message)
-
-        # Mesaj temizleme mantığı güncellendi
-        if "Tur bitti" in st.session_state.message:
-             pass 
-        elif state.action_points == 3 and not st.session_state.message.startswith("Zihin bahçenize"):
-             st.session_state.message = None
-        else:
-             pass
+            st.info(st.session_state.message)
             
     
     col_left, col_right = st.columns([3, 2])
@@ -931,6 +924,7 @@ def main():
         st.markdown("---")
         st.subheader("📜 Olay Günlüğü")
         log_html = ""
+        engine = MindGardenEngine(state) # Log için engine başlatıldı
         for entry in reversed(state.event_log):
             log_html += f"<li>{entry}</li>"
         st.markdown(f"<ul style='font-size: 14px; list-style-type: none; padding-left: 0;'>{log_html}</ul>",
@@ -968,11 +962,14 @@ def main():
         
         st.markdown("---")
 
-        # **KRİTİK DÜZELTME: AKSİYON BUTONLARI VE st.session_state KULLANIMI**
+        # **KRİTİK DÜZELTME: st.form_submit_button yerine st.button ve form mantığı**
         
-        # st.session_state.next_action'ı yakalamak için tüm butonları tek bir form içinde tutuyoruz.
         with st.form(key="action_form"):
+            st.markdown("### 🛠️ Aksiyon Seç")
             tab_plant, tab_action, tab_special = st.tabs(["🌱 EKME", "💧 TEMEL AKSİYON", "✨ İLERİ TEKNİKLER"])
+            
+            # Tüm butonlar artık standart st.button yerine st.form_submit_button olarak kalacak.
+            # Ancak aksiyon tespiti callback ile yapılacak ve form submit edildiğinde işlenecek.
             
             with tab_plant:
                 st.write("Düşünce Türü Seç (Boş Alan Gerekir):")
@@ -980,56 +977,60 @@ def main():
                 col_a, col_b = st.columns(2)
                 with col_a:
                     st.form_submit_button("🌸 Yaratıcı (1 AP)", help="Yaratıcı Düşünce Eker", use_container_width=True, 
-                                          on_click=set_action, args=("plant", CellType.THOUGHT_CREATIVE))
+                                          on_click=set_action_callback, args=("plant", CellType.THOUGHT_CREATIVE), key="btn_plant_c")
                     
                     st.form_submit_button("🌻 Duygusal (1 AP)", help="Duygusal Düşünce Eker", use_container_width=True,
-                                          on_click=set_action, args=("plant", CellType.THOUGHT_EMOTIONAL))
+                                          on_click=set_action_callback, args=("plant", CellType.THOUGHT_EMOTIONAL), key="btn_plant_e")
                 
                 with col_b:
                     st.form_submit_button("🌿 Analitik (1 AP)", help="Analitik Düşünce Eker", use_container_width=True,
-                                          on_click=set_action, args=("plant", CellType.THOUGHT_ANALYTIC))
+                                          on_click=set_action_callback, args=("plant", CellType.THOUGHT_ANALYTIC), key="btn_plant_a")
                     
                     st.form_submit_button("🌙 Sezgisel (2 AP)", help="Sezgisel Düşünce Eker (Yüksek AP)", use_container_width=True,
-                                          on_click=set_action, args=("plant", CellType.THOUGHT_INTUITIVE))
+                                          on_click=set_action_callback, args=("plant", CellType.THOUGHT_INTUITIVE), key="btn_plant_i")
             
             with tab_action:
                 st.write("Temel Bakım ve Kaygı Yönetimi:")
                 
                 st.form_submit_button("💧 Sula (1 AP)", help="Sağlık ve Enerji Verir", use_container_width=True,
-                                      on_click=set_action, args=("water",))
+                                      on_click=set_action_callback, args=("water",), key="btn_water")
                 
                 st.form_submit_button("✂️ Kaygı Buda (2 AP)", help="Kaygıyı Zayıflatır/Temizler", use_container_width=True,
-                                      on_click=set_action, args=("prune",))
+                                      on_click=set_action_callback, args=("prune",), key="btn_prune")
                 
                 st.markdown("---")
                 st.form_submit_button("🧘 Meditasyon - Tüm Bahçe (3 AP)", help="Tüm pozitif alanları iyileştirir", use_container_width=True,
-                                      on_click=set_action, args=("meditate",))
+                                      on_click=set_action_callback, args=("meditate",), key="btn_meditate")
             
             with tab_special:
                 st.write("Gelişmiş Teknikler (Yüksek Etki):")
                 
                 st.form_submit_button("✨ Sevinç Işığı Oluştur (2 AP)", help="En az 2 güçlü düşünce gerektirir", use_container_width=True,
-                                      on_click=set_action, args=("focus_joy",))
+                                      on_click=set_action_callback, args=("focus_joy",), key="btn_joy")
                 
                 st.form_submit_button("🌳 Travma Dönüştür (3 AP)", help="Travma Kökünü Bilgeliğe dönüştürür. En az 3 güçlü destek gerektirir.", use_container_width=True,
-                                      on_click=set_action, args=("transform",))
+                                      on_click=set_action_callback, args=("transform",), key="btn_transform")
 
-        # Form gönderildikten sonra, eğer bir aksiyon kaydedilmişse çalıştır ve sayfayı yenile
-        if st.session_state.next_action:
+        # Form gönderildikten sonra, eğer bir aksiyon kaydedilmişse çalıştır
+        if st.session_state.action_clicked and st.session_state.next_action:
             handle_action(st.session_state.next_action, x, y, st.session_state.thought_type)
-            # Aksiyonu temizle ve yeniden çalıştır
+            
+            # Aksiyon bilgisini sıfırla ve yeniden çalıştır
             st.session_state.next_action = None
             st.session_state.thought_type = None
+            st.session_state.action_clicked = False
             st.rerun()
 
         # TUR BİTİR BUTONU (FORM DIŞINDA)
         if st.button("⏭️ TURU BİTİR VE İLERLE", type="primary", use_container_width=True):
             handle_action("end_turn", x, y)
+            # st.rerun() zaten handle_action içindeki end_turn'den sonra otomatik olarak çağrılır (Form dışında olduğu için)
             st.rerun()
         
         st.markdown("---")
         
-        stats = engine.get_stats()
+        # İstatistikler ve Başarımlar (Değişmedi)
+        stats = MindGardenEngine(state).get_stats()
         with st.expander("📊 Bahçe İstatistikleri", expanded=False):
             col_s1, col_s2 = st.columns(2)
             with col_s1:
