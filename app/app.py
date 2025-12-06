@@ -210,6 +210,7 @@ class MindGardenEngine:
             self.add_event(f"✂️ Kaygı tamamen temizlendi ({x},{y})")
             return True, "Kaygı yok edildi!"
         else:
+            # Sağlığın 0 altına inmesini önlemek için max(0, ...) kullanımı korunmuştur
             cell.health = max(0, cell.health - 40)
             if cell.health == 0:
                 cell.type = CellType.EMPTY
@@ -226,6 +227,11 @@ class MindGardenEngine:
             return False, "Yeterli AP yok! (3 AP gerekli)"
         
         healed = 0
+        # Meditasyon sayacının tutulmadığı için Zen Master başarımı geçici olarak pasif
+        # Gerçek bir sayaç eklenmesi gerekir.
+        # if 'meditation_count' not in st.session_state: st.session_state.meditation_count = 0
+        # st.session_state.meditation_count += 1 
+
         for row in self.state.grid:
             for cell in row:
                 if cell.type != CellType.EMPTY and cell.type != CellType.ANXIETY:
@@ -235,7 +241,6 @@ class MindGardenEngine:
         
         self.state.action_points -= 3
         self.add_event(f"🧘 Meditasyon - {healed} hücre iyileşti")
-        # Zen Master başarımı için gizli sayaç eklenmediği için doğrudan mesajı döndürüyorum
         return True, f"{healed} hücre iyileşti!"
     
     def focus_joy(self, x: int, y: int) -> tuple[bool, str]:
@@ -610,17 +615,31 @@ def create_garden_visualization(state: GameState):
     z_data = []
     hover_text = []
     
+    # 1. color_map Tanımlanması
+    color_map = {
+        CellType.EMPTY: 0,
+        CellType.ANXIETY: 1,
+        CellType.TRAUMA: 2,
+        CellType.THOUGHT_CREATIVE: 3,
+        CellType.THOUGHT_ANALYTIC: 4,
+        CellType.THOUGHT_EMOTIONAL: 5,
+        CellType.THOUGHT_INTUITIVE: 6,
+        CellType.JOY: 7,
+        CellType.FLOWER: 8,
+        CellType.WISDOM: 9
+    }
+
+    # 2. HATA DÜZELTME: color_map.get() ile güvenli erişim sağlanmıştır
+    # Eğer hücre tipi haritada yoksa 0 (EMPTY) değeri kullanılır.
+    z_colors = [[color_map.get(cell.type, 0) for cell in row] for row in state.grid]
+
     for y, row in enumerate(state.grid):
         z_row = []
         hover_row = []
         
         for x, cell in enumerate(row):
             config = get_cell_config(cell.type)
-            # Heatmap için basit bir değer (Sağlık veya 1)
-            # 1, boş olmayan hücrelerin renklendirilmesine yardımcı olur
             z_value = 1 if cell.type != CellType.EMPTY else 0
-            # Renklendirmeyi hücre tipine göre belirlemek için (zorunlu değil, emoji ile gösteriliyor)
-            # z_row.append(cell.health if cell.type != CellType.EMPTY else 0) 
             z_row.append(z_value)
             
             hover_row.append(
@@ -634,22 +653,6 @@ def create_garden_visualization(state: GameState):
         z_data.append(z_row)
         hover_text.append(hover_row)
     
-    # Özel bir renk skalası oluşturun (Plotly'de emoji ile renklendirme zor olduğu için)
-    color_map = {
-        CellType.EMPTY: 0,
-        CellType.ANXIETY: 1,
-        CellType.TRAUMA: 2,
-        CellType.THOUGHT_CREATIVE: 3,
-        CellType.THOUGHT_ANALYTIC: 4,
-        CellType.THOUGHT_EMOTIONAL: 5,
-        CellType.THOUGHT_INTUITIVE: 6,
-        CellType.JOY: 7,
-        CellType.FLOWER: 8,
-        CellType.WISDOM: 9
-    }
-    
-    z_colors = [[color_map[cell.type] for cell in row] for row in state.grid]
-
     # Her hücre tipi için tek bir renk
     colorscale_values = [
         [0.0, CELL_CONFIGS[CellType.EMPTY]['color']],
@@ -674,9 +677,8 @@ def create_garden_visualization(state: GameState):
         [1.0, CELL_CONFIGS[CellType.WISDOM]['color']]
     ]
     
-    # Görselleştirme için renk yerine emojiyi kullanmaya devam ediyoruz
-    # z_colors'ı 0'dan 9'a normalize et (0-1 arasına)
     max_val = max(color_map.values())
+    # 0'dan 9'a normalize et (0-1 arasına)
     normalized_z = [[val / max_val for val in row] for row in z_colors]
 
     fig = go.Figure(data=go.Heatmap(
@@ -809,15 +811,15 @@ def main():
         st.metric("Zaman", state.time_of_day.value)
     
     if st.session_state.message:
-        if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message:
+        if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message or "dönüştürüldü" in st.session_state.message:
             st.success(st.session_state.message)
-        elif "Yeterli AP" in st.session_state.message or "dolu" in st.session_state.message:
+        elif "Yeterli AP" in st.session_state.message or "dolu" in st.session_state.message or "gerekli" in st.session_state.message:
             st.warning(st.session_state.message)
         else:
             st.info(st.session_state.message)
 
-        # Mesajı bir sonraki turda temizle
-        if st.session_state.message in ["Tur bitti! Bahçe gelişti.", "Başarılı!"]:
+        # Tur sonunda mesajı silme mantığı
+        if st.session_state.message == "Tur bitti! Bahçe gelişti.":
              st.session_state.message = None
     
     col_left, col_right = st.columns([3, 2])
@@ -835,6 +837,7 @@ def main():
         
         col_x, col_y = st.columns(2)
         with col_x:
+            # st.number_input'ta key'i değiştirmeden kullanmak için varsayılan değeri session_state'ten alın.
             sel_x = st.number_input("X Koordinat", 0, state.grid_size-1, 
                                      st.session_state.selected_cell[0], key="sel_x")
         with col_y:
