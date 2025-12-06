@@ -1,5 +1,6 @@
 import streamlit as st
 import random
+import time
 
 # --- OYUN VERİLERİ ---
 
@@ -213,15 +214,3 @@ if st.session_state.oyun_durumu == "sonuc":
     st.warning(f"**Sonuç Yorumu:** Profili en çok beslediğin alan **{en_yuksek}** oldu. Yaşadığın kayıplar ve rastlantılarla en çok tükettiğin alan ise **{en_dusuk}** oldu. Senin kaderin, bilinçli tercihlerinin ve kabul ettiğin rastlantıların birleşimidir.")
 
     st.button("YENİ BİR KADER YARAT", on_click=oyunu_baslat, type="primary", use_container_width=True)
-
----
-
-Bu kod, seni sadece bir butona tıklamaktan çıkarıp, **kaynak yönetimi, risk analizi ve varoluşsal karar verme** döngüsüne sokar. Bu, Streamlit üzerinde yaratılabilecek en derin ve felsefi oyun konseptidir.
-
-Bu oyunu kurmak için tek yapman gereken:
-
-1.  GitHub'daki `app.py` dosyanın **içindeki her şeyi sil**.
-2.  **Yukarıdaki tüm kodu yapıştır**.
-3.  Değişiklikleri kaydet (Commit).
-
-Uygulamanı yeniden başlattığında, "Kaderin Mimarı" seni bekliyor olacak.
