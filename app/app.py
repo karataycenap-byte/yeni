@@ -2,171 +2,184 @@ import streamlit as st
 import random
 import time
 
-# --- OYUN İÇERİĞİ (TELEPATİ SENARYOLARI) ---
-# Buraya yüzlerce eğlenceli, absürt ve zorlayıcı başlık ekledik.
-SENARYOLAR = [
-    "Buzdolabında duran bozulmuş bir şey?",
-    "Eski sevgiliye atılacak tek kelimelik mesaj?",
-    "Zombi istilasında ilk ölecek kişi tipi?",
-    "Polis seni çevirse bagajda bulacağı en saçma şey?",
-    "Bir süper kahramanın en gereksiz süper gücü?",
-    "Düğünde takılacak en kötü takı?",
-    "Issız adaya düşsen yanına alacağın, hayatta kalmana yaramayacak bir eşya?",
-    "Bir korku filminde asla girmemen gereken oda?",
-    "İnsanların gizlice yaptığı iğrenç bir alışkanlık?",
-    "Sadece zenginlerin yediği saçma bir yiyecek?",
-    "Bir hayvan konuşabilseydi, hangisi en küfürbaz olurdu?",
-    "Sevgilinin telefonunda görmemen gereken bir uygulama?",
-    "Mezar taşına yazılacak komik bir söz?",
-    "Uzaylılar gelse ilk kaçıracağı ünlü?",
-    "Pizzanın üzerine konulabilecek en kötü malzeme?",
-    "Bir öğretmenin derste söylemekten bıktığı cümle?",
-    "Sadece Türkiye'de görebileceğin bir olay?",
-    "Gece 3'te mutfakta yenen şey?",
-    "Birinin yüzüne söylenmeyecek bir iltifat?",
-    "Çocuğuna asla koymayacağın bir isim?",
-    "Cehenneme gitsen çalacak şarkı?",
-    "İnternet geçmişin silinmese açıklayamayacağın arama?",
-    "En kötü hediye?",
-    "Bir erkeğin/kadının en itici özelliği?",
-    "Sarhoşken atılan mesajın konusu?",
-    "Hayatın bir film olsa türü ne olurdu?",
-    "En gereksiz icat?",
-    "Bir vampir olsan kanını içmeyeceğin kişi?",
-    "Asansörde yapılmayacak hareket?",
-    "Patronuna söylemek isteyip söyleyemediğin şey?",
-    "İlk buluşmada yapılmaması gereken bir hata?",
-    "Diyeti bozduran yiyecek?",
-    "Sihirli bir değneğin olsa yapacağın ilk saçmalık?",
-    "Bir rock grubun olsa adı ne olurdu?",
-    "Tuvalette kağıt bitse kullanacağın şey?",
-    "En sinir bozucu ses?",
-    "Bir renk söyle (Kırmızı ve Mavi hariç)?",
-    "3 harfli bir hayvan?",
-    "Babaannenin en çok kullandığı kelime?",
-    "Yere düşse bile alıp yiyeceğin şey?",
-    "Titanic batarken çalacak neşeli şarkı?",
-] * 5 # Listeyi uzatmak için çoğaltıyoruz
-random.shuffle(SENARYOLAR)
+# --- SAYFA AYARLARI ---
+st.set_page_config(page_title="Vicdan Pusulası", page_icon="⚖️", layout="centered")
 
-# --- ARAYÜZ VE MANTIK ---
-
-# Sayfa Yapılandırması
-st.set_page_config(page_title="Telepati Testi", page_icon="🧠", layout="centered")
-
-# CSS ile Modern Tasarım
+# --- CSS İLE ATMOSFERİK TASARIM ---
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 40px; 
-        font-weight: 800; 
-        text-align: center; 
-        background: -webkit-linear-gradient(45deg, #00C9FF, #92FE9D);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 20px;
+    /* Genel Arka Plan ve Yazı Tipi */
+    .main {
+        background-color: #0E1117;
+        color: #FAFAFA;
+        font-family: 'Georgia', serif;
     }
-    .card {
-        background-color: #262730;
+    
+    /* Başlık */
+    .title-text {
+        font-size: 36px;
+        font-weight: 300;
+        text-align: center;
+        letter-spacing: 2px;
+        color: #E0E0E0;
+        margin-bottom: 30px;
+        text-transform: uppercase;
+        border-bottom: 1px solid #333;
+        padding-bottom: 10px;
+    }
+    
+    /* Soru Kartı */
+    .question-card {
+        background-color: #161B22;
         padding: 30px;
-        border-radius: 15px;
-        text-align: center;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        border: 2px solid #4B4B4B;
-        margin-bottom: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #8e44ad; /* Mor vurgu */
+        margin-bottom: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     }
-    .prompt-text {
-        font-size: 28px;
-        font-weight: bold;
+    
+    .question-text {
+        font-size: 24px;
+        font-weight: 500;
+        line-height: 1.5;
         color: #ffffff;
-        line-height: 1.4;
     }
-    .score-box {
-        font-size: 20px;
-        font-weight: bold;
-        color: #FFD700;
-        text-align: center;
-        padding: 10px;
-        border: 1px dashed #FFD700;
-        border-radius: 10px;
-        margin-bottom: 20px;
+    
+    /* Sonuç Analizi */
+    .analysis-box {
+        background-color: #2c3e50;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        border: 1px solid #8e44ad;
     }
-    /* Butonları büyütme */
+    
+    /* Butonlar */
     .stButton>button {
-        width: 100%;
         height: 60px;
-        font-size: 20px;
-        font-weight: bold;
-        border-radius: 12px;
+        font-size: 18px;
+        border-radius: 4px;
+        transition: all 0.3s;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Session State
-if 'score' not in st.session_state:
-    st.session_state.score = 0
-if 'rounds' not in st.session_state:
-    st.session_state.rounds = 0
-if 'current_prompt' not in st.session_state:
-    st.session_state.current_prompt = None
-if 'game_active' not in st.session_state:
-    st.session_state.game_active = False
+# --- FELSEFİ İKİLEMLER VERİTABANI ---
+# Format: [Soru, Seçenek A, Seçenek B, Analiz A, Analiz B]
+IKILEMLER = [
+    (
+        "Mükemmel bir simülasyonda sonsuza dek mutlu yaşamak mı, yoksa acı dolu gerçek dünyada uyanmak mı?",
+        "💊 Mükemmel Simülasyon (Mutluluk)",
+        "🛑 Acı Dolu Gerçek (Hakikat)",
+        "Hedonizmi seçtin. Senin için önemli olan deneyimin kalitesi, kaynağı değil. Cypher (Matrix) gibi düşünüyorsun.",
+        "Varoluşçuluğu seçtin. Senin için özgürlük ve gerçeklik, mutluluktan daha değerli. Sokrates'in dediği gibi: 'Sorgulanmamış bir hayat yaşamaya değmez.'"
+    ),
+    (
+        "Sevdiğin tek bir kişiyi kurtarmak için tanımadığın 100 kişinin ölmesine izin verir misin?",
+        "❤️ Sevdiğimi Kurtarırım",
+        "⚖️ 100 Kişiyi Kurtarırım",
+        "Duygusal Etik. Senin için kişisel bağlar, evrensel matematiksel doğrulardan daha güçlü. İnsan olmanın trajedisi budur.",
+        "Faydacı Etik (Utilitarianism). Jeremy Bentham gibi düşünüyorsun: 'En fazla kişi için en büyük iyilik'. Ama kalbini feda ettin."
+    ),
+    (
+        "Geçmişindeki tüm kötü anıları sildirme şansın olsa, sildirir miydin? (Kişiliğin değişecek olsa bile)",
+        "🧹 Evet, Sildiririm",
+        "🧠 Hayır, Kalsın",
+        "Tabula Rasa'yı arzuluyorsun. Acının seni engellediğini düşünüyorsun, ama unuttuğun şey şu: Acı, büyümenin tek yoludur.",
+        "Nietzsche'nin 'Amor Fati' (Kaderini Sev) anlayışındasın. Seni sen yapan şeyin sadece zaferlerin değil, yaraların olduğunu biliyorsun."
+    ),
+    (
+        "Ölümsüz olmak ama insanlığını kaybetmek mi (duygu yok), yoksa anlamlı ama kısa bir insan ömrü mü?",
+        "🤖 Ölümsüzlük (Duygusuz)",
+        "🥀 Kısa ve Anlamlı Ömür",
+        "Transhümanizm. Varlığın devamlılığını, varlığın içeriğinden üstün tutuyorsun. Ölüm korkun, yaşam arzundan büyük.",
+        "Stoacı Bakış. Ölümün yaşamı anlamlı kıldığını biliyorsun. Bir şeyin değerli olması için, onun bitecek olması gerekir."
+    ),
+    (
+        "Bir suçluyu cezalandırmanın amacı ne olmalı: İntikam almak mı, onu topluma geri kazandırmak mı?",
+        "🔥 İntikam / Adalet",
+        "🌿 Rehabilitasyon / İyileştirme",
+        "Retributivizm. Göze göz. Senin için adalet, evrensel bir denge meselesidir. Suç cezasız kalamaz.",
+        "Hümanizm. İnsanın değişebileceğine inanıyorsun. Suçu bir hastalık, suçluyu ise hasta olarak görüyorsun."
+    ),
+    (
+        "Dünyadaki tüm savaşları bitirecek bir düğme var, ama basarsan tüm sanat ve edebiyat da yok olacak. Basar mısın?",
+        "🕊️ Evet, Barış İçin Basarım",
+        "🎨 Hayır, Sanat İçin Basmam",
+        "Mutlak Pragmatizm. Yaşam hakkını, yaşamın estetiğinden üstün tuttun. Güvenli ama renksiz bir dünya seçtin.",
+        "Romantizm. İnsanı insan yapan şeyin sadece nefes almak değil, yaratmak olduğunu düşünüyorsun. Acı olmadan sanat olmaz."
+    )
+]
 
-# Fonksiyonlar
-def new_round():
-    st.session_state.current_prompt = random.choice(SENARYOLAR)
-    st.session_state.game_active = True
+# --- SESSION STATE (DURUM YÖNETİMİ) ---
+if 'index' not in st.session_state:
+    st.session_state.index = random.randint(0, len(IKILEMLER)-1)
+if 'show_result' not in st.session_state:
+    st.session_state.show_result = False
+if 'choice' not in st.session_state:
+    st.session_state.choice = None
 
-def result(match):
-    st.session_state.rounds += 1
-    if match:
-        st.session_state.score += 1
-        st.balloons()
-    st.session_state.game_active = False
+def next_question():
+    st.session_state.index = random.randint(0, len(IKILEMLER)-1)
+    st.session_state.show_result = False
+    st.session_state.choice = None
     st.rerun()
 
-# --- OYUN GÖRÜNÜMÜ ---
+def make_choice(choice_idx):
+    st.session_state.choice = choice_idx
+    st.session_state.show_result = True
+    st.rerun()
 
-st.markdown('<p class="main-header">🧠 AYNI FREKANS</p>', unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: gray;'>Aynı anda aynı cevabı verin!</p>", unsafe_allow_html=True)
+# --- ARAYÜZ ---
 
-# Skor Tablosu (Uyum Oranı)
-if st.session_state.rounds > 0:
-    uyum_orani = int((st.session_state.score / st.session_state.rounds) * 100)
-    st.markdown(f'<div class="score-box">UYUM ORANI: %{uyum_orani} <br> ({st.session_state.score} / {st.session_state.rounds})</div>', unsafe_allow_html=True)
-    st.progress(uyum_orani / 100)
-else:
-    st.markdown('<div class="score-box">HENÜZ BAŞLAMADI</div>', unsafe_allow_html=True)
+st.markdown('<p class="title-text">🪐 VİCDAN PUSULASI</p>', unsafe_allow_html=True)
 
-# Oyun Alanı
-if not st.session_state.game_active:
-    # Başlat Butonu
-    if st.button("🚀 FREKANSI YAKALA (BAŞLA)", type="primary"):
-        new_round()
-        st.rerun()
-else:
-    # Soru Kartı
-    st.markdown(f"""
-    <div class="card">
-        <p style="color: #FF4B4B; font-weight: bold; font-size: 18px;">3 SANİYE İÇİNDE SÖYLE!</p>
-        <p class="prompt-text">{st.session_state.current_prompt}</p>
-    </div>
-    """, unsafe_allow_html=True)
+# Mevcut Soru Verisi
+soru, secenek_a, secenek_b, analiz_a, analiz_b = IKILEMLER[st.session_state.index]
 
-    # Geri Sayım Efekti (Metin olarak)
-    st.info("💡 İPUCU: 3'ten geriye sesli sayın ve aynı anda bağırın!")
+# SORU KARTI
+st.markdown(f"""
+<div class="question-card">
+    <p class="question-text">{soru}</p>
+</div>
+""", unsafe_allow_html=True)
 
-    # Sonuç Butonları
+# SEÇİM EKRANI
+if not st.session_state.show_result:
     col1, col2 = st.columns(2)
     with col1:
-        st.button("✅ AYNI ŞEYİ DEDİK!", on_click=lambda: result(True), type="primary")
+        st.button(secenek_a, on_click=make_choice, args=(0,), use_container_width=True)
     with col2:
-        st.button("❌ FARKLI ŞEYLER...", on_click=lambda: result(False))
+        st.button(secenek_b, on_click=make_choice, args=(1,), use_container_width=True)
+    
+    st.markdown("<br><p style='text-align:center; color:gray; font-size:14px;'><i>Dürüst ol. Kimse seni yargılamıyor, sadece sen.</i></p>", unsafe_allow_html=True)
 
-# Sıfırlama
-st.markdown("---")
-if st.button("🔄 Skoru Sıfırla"):
-    st.session_state.score = 0
-    st.session_state.rounds = 0
-    st.session_state.game_active = False
-    st.rerun()
+# SONUÇ EKRANI
+else:
+    # Rastgele istatistik üretimi (Simülasyon)
+    oran_a = random.randint(30, 70)
+    oran_b = 100 - oran_a
+    
+    secilen_analiz = analiz_a if st.session_state.choice == 0 else analiz_b
+    secilen_oran = oran_a if st.session_state.choice == 0 else oran_b
+    
+    st.markdown(f"### 👁️ Analiz")
+    st.markdown(f"""
+    <div class="analysis-box">
+        <p style='font-size: 18px; color: #E0E0E0;'>{secilen_analiz}</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("### 🌍 Toplumsal Yansıma")
+    st.write(f"İnsanların **%{secilen_oran}** kadarı seninle aynı seçimi yaptı.")
+    
+    # Görsel İlerleme Çubuğu
+    if st.session_state.choice == 0:
+        st.progress(oran_a / 100)
+        st.caption(f"{secenek_a} (%{oran_a}) vs {secenek_b} (%{oran_b})")
+    else:
+        st.progress(oran_b / 100)
+        st.caption(f"{secenek_b} (%{oran_b}) vs {secenek_a} (%{oran_a})")
+
+    st.markdown("---")
+    st.button("✨ Başka Bir İkilem Getir", on_click=next_question, type="primary", use_container_width=True)
