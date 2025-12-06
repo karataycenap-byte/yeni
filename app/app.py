@@ -6,7 +6,7 @@ from typing import List, Dict
 import plotly.graph_objects as go
 
 # ============================================================================
-# GAME CONSTANTS & ENUMS
+# GAME CONSTANTS & ENUMS (Değişmedi)
 # ============================================================================
 
 class CellType(Enum):
@@ -28,7 +28,7 @@ class TimeOfDay(Enum):
     NIGHT = "Gece"
 
 # ============================================================================
-# DATA CLASSES
+# DATA CLASSES (Değişmedi)
 # ============================================================================
 
 @dataclass
@@ -66,7 +66,7 @@ class GameState:
             self.achievements = []
 
 # ============================================================================
-# GAME CONFIGURATION
+# GAME CONFIGURATION (Değişmedi)
 # ============================================================================
 
 CELL_CONFIGS = {
@@ -126,7 +126,7 @@ ACHIEVEMENTS_INFO = {
 }
 
 # ============================================================================
-# UTILITY FUNCTIONS
+# UTILITY FUNCTIONS (Değişmedi)
 # ============================================================================
 
 def get_cell_config(cell_type: CellType) -> Dict:
@@ -174,7 +174,7 @@ def initialize_game():
     return state
 
 # ============================================================================
-# GAME ENGINE
+# GAME ENGINE (Değişmedi)
 # ============================================================================
 
 class MindGardenEngine:
@@ -637,7 +637,7 @@ class MindGardenEngine:
         return stats
 
 # ============================================================================
-# VISUALIZATION
+# VISUALIZATION (Değişmedi)
 # ============================================================================
 
 def create_garden_visualization(state: GameState):
@@ -722,7 +722,7 @@ def create_garden_visualization(state: GameState):
     return fig
 
 # ============================================================================
-# ACTION HANDLER
+# ACTION HANDLER (Değişmedi)
 # ============================================================================
 
 def handle_action(action_type, x, y, thought_type=None):
@@ -752,7 +752,7 @@ def handle_action(action_type, x, y, thought_type=None):
     st.session_state.message = msg
 
 # ============================================================================
-# HOW TO PLAY (DISPLAY) FUNCTION - NameError DÜZELTİLDİ: main'den önce tanımlandı
+# HOW TO PLAY (DISPLAY) FUNCTION (Değişmedi)
 # ============================================================================
 
 def display_how_to_play():
@@ -818,6 +818,12 @@ def display_how_to_play():
 # MAIN APPLICATION LOGIC
 # ============================================================================
 
+# Callback fonksiyonları (Butonlar için)
+def set_action(action_type: str, thought_type: CellType = None):
+    """Buton aksiyonunu session state'e kaydeder."""
+    st.session_state.next_action = action_type
+    st.session_state.thought_type = thought_type
+
 def main():
     st.set_page_config(page_title="Zihin Bahçesi", page_icon="🌱", layout="wide")
     
@@ -845,25 +851,29 @@ def main():
         </style>
     """, unsafe_allow_html=True)
     
-    # **KRİTİK BAŞLANGIÇ DURUMU KONTROLÜ**
+    # **KRİTİK BAŞLANGIÇ DURUMU KONTROLÜ VE YENİ DEĞİŞKENLER**
     if 'game_started' not in st.session_state:
         st.session_state.game_started = False
         st.session_state.game_state = None 
         st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
-    
-    if 'selected_cell' not in st.session_state:
         st.session_state.selected_cell = (3, 3)
-
+        st.session_state.next_action = None # Yeni: Buton aksiyonunu tutacak değişken
+        st.session_state.thought_type = None # Yeni: Ekleme aksiyonu için düşünce türünü tutacak değişken
+    
+    # Yeni Oyun Başlatma Düğmesi
     st.sidebar.title("Kontrol")
     if st.sidebar.button("🔄 Yeni Oyun Başlat", help="Mevcut oyunu sıfırlar.", type="secondary"):
+        st.session_state.clear()
         st.session_state.game_started = False
         st.session_state.game_state = None
         st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
+        st.session_state.selected_cell = (3, 3)
+        st.session_state.next_action = None
+        st.session_state.thought_type = None
         st.rerun()
 
     # Oyun Başlangıç Ekranı
     if not st.session_state.game_started:
-        # HATA ÇÖZÜMÜ: display_how_to_play() fonksiyonu artık burada tanınıyor.
         display_how_to_play() 
         return
 
@@ -894,15 +904,16 @@ def main():
     if st.session_state.message:
         message_box = st.empty()
         
-        if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message or "dönüştürüldü" in st.session_state.message:
+        if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message or "dönüştürüldü" in st.session_state.message or "Tur bitti" in st.session_state.message:
             message_box.success(st.session_state.message)
         elif "Yeterli AP" in st.session_state.message or "dolu" in st.session_state.message or "gerekli" in st.session_state.message or "değil" in st.session_state.message:
             message_box.warning(st.session_state.message)
         else:
             message_box.info(st.session_state.message)
 
+        # Mesaj temizleme mantığı güncellendi
         if "Tur bitti" in st.session_state.message:
-             pass
+             pass 
         elif state.action_points == 3 and not st.session_state.message.startswith("Zihin bahçenize"):
              st.session_state.message = None
         else:
@@ -933,7 +944,7 @@ def main():
         with st.expander("Koordinat Seç", expanded=True):
             col_x, col_y = st.columns(2)
             with col_x:
-                # Koordinat seçimini key ve on_change ile yönetmek, stabil çalışmasını sağlar.
+                # Koordinat seçimi
                 new_x = st.number_input("X Koordinat", 0, state.grid_size-1, x, key="inp_x", on_change=lambda: st.session_state.update(selected_cell=(st.session_state.inp_x, st.session_state.inp_y)))
             with col_y:
                 new_y = st.number_input("Y Koordinat", 0, state.grid_size-1, y, key="inp_y", on_change=lambda: st.session_state.update(selected_cell=(st.session_state.inp_x, st.session_state.inp_y)))
@@ -957,59 +968,59 @@ def main():
         
         st.markdown("---")
 
+        # **KRİTİK DÜZELTME: AKSİYON BUTONLARI VE st.session_state KULLANIMI**
+        
+        # st.session_state.next_action'ı yakalamak için tüm butonları tek bir form içinde tutuyoruz.
         with st.form(key="action_form"):
             tab_plant, tab_action, tab_special = st.tabs(["🌱 EKME", "💧 TEMEL AKSİYON", "✨ İLERİ TEKNİKLER"])
-            
-            action_to_perform = None
-            thought_type_to_plant = None
             
             with tab_plant:
                 st.write("Düşünce Türü Seç (Boş Alan Gerekir):")
                 
                 col_a, col_b = st.columns(2)
                 with col_a:
-                    if st.form_submit_button("🌸 Yaratıcı (1 AP)", help="Yaratıcı Düşünce Eker", use_container_width=True):
-                        action_to_perform = "plant"
-                        thought_type_to_plant = CellType.THOUGHT_CREATIVE
+                    st.form_submit_button("🌸 Yaratıcı (1 AP)", help="Yaratıcı Düşünce Eker", use_container_width=True, 
+                                          on_click=set_action, args=("plant", CellType.THOUGHT_CREATIVE))
                     
-                    if st.form_submit_button("🌻 Duygusal (1 AP)", help="Duygusal Düşünce Eker", use_container_width=True):
-                        action_to_perform = "plant"
-                        thought_type_to_plant = CellType.THOUGHT_EMOTIONAL
+                    st.form_submit_button("🌻 Duygusal (1 AP)", help="Duygusal Düşünce Eker", use_container_width=True,
+                                          on_click=set_action, args=("plant", CellType.THOUGHT_EMOTIONAL))
                 
                 with col_b:
-                    if st.form_submit_button("🌿 Analitik (1 AP)", help="Analitik Düşünce Eker", use_container_width=True):
-                        action_to_perform = "plant"
-                        thought_type_to_plant = CellType.THOUGHT_ANALYTIC
+                    st.form_submit_button("🌿 Analitik (1 AP)", help="Analitik Düşünce Eker", use_container_width=True,
+                                          on_click=set_action, args=("plant", CellType.THOUGHT_ANALYTIC))
                     
-                    if st.form_submit_button("🌙 Sezgisel (2 AP)", help="Sezgisel Düşünce Eker (Yüksek AP)", use_container_width=True):
-                        action_to_perform = "plant"
-                        thought_type_to_plant = CellType.THOUGHT_INTUITIVE
+                    st.form_submit_button("🌙 Sezgisel (2 AP)", help="Sezgisel Düşünce Eker (Yüksek AP)", use_container_width=True,
+                                          on_click=set_action, args=("plant", CellType.THOUGHT_INTUITIVE))
             
             with tab_action:
                 st.write("Temel Bakım ve Kaygı Yönetimi:")
                 
-                if st.form_submit_button("💧 Sula (1 AP)", help="Sağlık ve Enerji Verir", use_container_width=True):
-                    action_to_perform = "water"
+                st.form_submit_button("💧 Sula (1 AP)", help="Sağlık ve Enerji Verir", use_container_width=True,
+                                      on_click=set_action, args=("water",))
                 
-                if st.form_submit_button("✂️ Kaygı Buda (2 AP)", help="Kaygıyı Zayıflatır/Temizler", use_container_width=True):
-                    action_to_perform = "prune"
+                st.form_submit_button("✂️ Kaygı Buda (2 AP)", help="Kaygıyı Zayıflatır/Temizler", use_container_width=True,
+                                      on_click=set_action, args=("prune",))
                 
                 st.markdown("---")
-                if st.form_submit_button("🧘 Meditasyon - Tüm Bahçe (3 AP)", help="Tüm pozitif alanları iyileştirir", use_container_width=True):
-                    action_to_perform = "meditate"
+                st.form_submit_button("🧘 Meditasyon - Tüm Bahçe (3 AP)", help="Tüm pozitif alanları iyileştirir", use_container_width=True,
+                                      on_click=set_action, args=("meditate",))
             
             with tab_special:
                 st.write("Gelişmiş Teknikler (Yüksek Etki):")
                 
-                if st.form_submit_button("✨ Sevinç Işığı Oluştur (2 AP)", help="En az 2 güçlü düşünce gerektirir", use_container_width=True):
-                    action_to_perform = "focus_joy"
+                st.form_submit_button("✨ Sevinç Işığı Oluştur (2 AP)", help="En az 2 güçlü düşünce gerektirir", use_container_width=True,
+                                      on_click=set_action, args=("focus_joy",))
                 
-                if st.form_submit_button("🌳 Travma Dönüştür (3 AP)", help="Travma Kökünü Bilgeliğe dönüştürür. En az 3 güçlü destek gerektirir.", use_container_width=True):
-                    action_to_perform = "transform"
+                st.form_submit_button("🌳 Travma Dönüştür (3 AP)", help="Travma Kökünü Bilgeliğe dönüştürür. En az 3 güçlü destek gerektirir.", use_container_width=True,
+                                      on_click=set_action, args=("transform",))
 
-            if action_to_perform:
-                handle_action(action_to_perform, x, y, thought_type_to_plant)
-                st.rerun()
+        # Form gönderildikten sonra, eğer bir aksiyon kaydedilmişse çalıştır ve sayfayı yenile
+        if st.session_state.next_action:
+            handle_action(st.session_state.next_action, x, y, st.session_state.thought_type)
+            # Aksiyonu temizle ve yeniden çalıştır
+            st.session_state.next_action = None
+            st.session_state.thought_type = None
+            st.rerun()
 
         # TUR BİTİR BUTONU (FORM DIŞINDA)
         if st.button("⏭️ TURU BİTİR VE İLERLE", type="primary", use_container_width=True):
