@@ -6,7 +6,7 @@ from typing import List, Dict
 import plotly.graph_objects as go
 
 # ============================================================================
-# GAME CONSTANTS & ENUMS
+# GAME CONSTANTS & ENUMS (Değişmedi)
 # ============================================================================
 
 class CellType(Enum):
@@ -28,7 +28,7 @@ class TimeOfDay(Enum):
     NIGHT = "Gece"
 
 # ============================================================================
-# DATA CLASSES
+# DATA CLASSES (Değişmedi)
 # ============================================================================
 
 @dataclass
@@ -66,7 +66,7 @@ class GameState:
             self.achievements = []
 
 # ============================================================================
-# GAME CONFIGURATION
+# GAME CONFIGURATION (Değişmedi)
 # ============================================================================
 
 CELL_CONFIGS = {
@@ -174,10 +174,11 @@ def initialize_game():
     return state
 
 # ============================================================================
-# GAME ENGINE
+# GAME ENGINE (Değişmedi)
 # ============================================================================
 
 class MindGardenEngine:
+    # ... (MindGardenEngine sınıfı önceki kodla aynı kalmıştır)
     def __init__(self, state: GameState):
         self.state = state
     
@@ -637,11 +638,11 @@ class MindGardenEngine:
         return stats
 
 # ============================================================================
-# VISUALIZATION
+# VISUALIZATION (Değişmedi)
 # ============================================================================
 
 def create_garden_visualization(state: GameState):
-    """Bahçe görselleştirmesi oluşturur"""
+    # ... (Görselleştirme fonksiyonu önceki kodla aynı kalmıştır)
     z_data = []
     hover_text = []
     
@@ -722,7 +723,7 @@ def create_garden_visualization(state: GameState):
     return fig
 
 # ============================================================================
-# ACTION HANDLER
+# ACTION HANDLER (Daha güvenli hale getirildi)
 # ============================================================================
 
 def handle_action(action_type, x, y, thought_type=None):
@@ -750,13 +751,14 @@ def handle_action(action_type, x, y, thought_type=None):
         success = True 
 
     st.session_state.message = msg
+    return success
 
 # ============================================================================
-# HOW TO PLAY (DISPLAY) FUNCTION
+# HOW TO PLAY (DISPLAY) FUNCTION (Değişmedi)
 # ============================================================================
 
 def display_how_to_play():
-    """Oyunun nasıl oynanacağını anlatan profesyonel bir sayfa gösterir."""
+    # ... (display_how_to_play fonksiyonu önceki kodla aynı kalmıştır)
     st.markdown("## 🧠 Zihin Bahçesi: Nasıl Oynanır?")
     st.caption("Bu oyun, zihninizi bir bahçe metaforu üzerinden yönetmeyi ve geliştirmeyi simüle eder.")
     
@@ -812,6 +814,10 @@ def display_how_to_play():
         st.session_state.game_state = initialize_game()
         st.session_state.message = "Zihin bahçenize hoş geldiniz. İlk AP'lerinizi kullanın!"
         st.session_state.game_started = True
+        # Temizlik
+        st.session_state.next_action = None
+        st.session_state.thought_type = None
+        st.session_state.action_clicked = False
         st.rerun()
 
 # ============================================================================
@@ -828,6 +834,7 @@ def set_action_callback(action_type: str, thought_type: CellType = None):
 def main():
     st.set_page_config(page_title="Zihin Bahçesi", page_icon="🌱", layout="wide")
     
+    # CSS (Değişmedi)
     st.markdown("""
         <style>
         .main {background-color: #F5F7FA;}
@@ -853,6 +860,7 @@ def main():
     """, unsafe_allow_html=True)
     
     # **KRİTİK BAŞLANGIÇ DURUMU KONTROLÜ VE YENİ DEĞİŞKENLER**
+    # Tüm session_state değişkenleri burada varsayılan değerleri ile başlatılır.
     if 'game_started' not in st.session_state:
         st.session_state.game_started = False
         st.session_state.game_state = None 
@@ -860,13 +868,14 @@ def main():
         st.session_state.selected_cell = (3, 3)
         st.session_state.next_action = None 
         st.session_state.thought_type = None 
-        st.session_state.action_clicked = False # Yeni: Aksiyon tıklandı mı?
+        st.session_state.action_clicked = False # Aksiyon tıklandı mı?
+
     
     # Yeni Oyun Başlatma Düğmesi
     st.sidebar.title("Kontrol")
     if st.sidebar.button("🔄 Yeni Oyun Başlat", help="Mevcut oyunu sıfırlar.", type="secondary"):
         st.session_state.clear()
-        # st.session_state'i tamamen temizledikten sonra yeniden başlatmak için gerekli minimum değerler
+        # Temizledikten sonra yeniden başlatmak için gerekli minimum değerler
         st.session_state.game_started = False
         st.session_state.selected_cell = (3, 3)
         st.session_state.message = "Yeni bir zihin bahçesi kurmaya hazır mısınız?"
@@ -882,11 +891,12 @@ def main():
 
     # Oyun Başladı
     state = st.session_state.game_state
+    engine = MindGardenEngine(state)
     
     st.title("🌱 ZİHİN BAHÇESİ")
     st.caption("Zihninizi büyütün, kaygıları yönetin, bilincinizi yükseltin")
     
-    # Üst Bilgi Metrikleri
+    # Üst Bilgi Metrikleri (Değişmedi)
     xp_needed = state.consciousness_level * 100
     xp_progress = min(1.0, state.consciousness_xp / xp_needed) 
     
@@ -904,7 +914,6 @@ def main():
     
     # Aksiyon Mesajları
     if st.session_state.message:
-        # Mesajı bir placeholder'da gösteriyoruz, aksi halde form submit'ten sonra kaybolmazdı.
         if "Başarılı" in st.session_state.message or "iyileşti" in st.session_state.message or "yok edildi" in st.session_state.message or "yarattın" in st.session_state.message or "dönüştürüldü" in st.session_state.message or "Tur bitti" in st.session_state.message:
             st.success(st.session_state.message)
         elif "Yeterli AP" in st.session_state.message or "dolu" in st.session_state.message or "gerekli" in st.session_state.message or "değil" in st.session_state.message:
@@ -924,7 +933,6 @@ def main():
         st.markdown("---")
         st.subheader("📜 Olay Günlüğü")
         log_html = ""
-        engine = MindGardenEngine(state) # Log için engine başlatıldı
         for entry in reversed(state.event_log):
             log_html += f"<li>{entry}</li>"
         st.markdown(f"<ul style='font-size: 14px; list-style-type: none; padding-left: 0;'>{log_html}</ul>",
@@ -948,7 +956,7 @@ def main():
         cell = state.grid[y][x]
         config = get_cell_config(cell.type)
         
-        # Hücre Bilgisi
+        # Hücre Bilgisi (Değişmedi)
         st.markdown(f"""
         <div style='background: white; padding: 15px; border-radius: 10px; border-left: 4px solid {config['color']}'>
             <h3>{config['emoji']} {config['name']}</h3>
@@ -962,14 +970,11 @@ def main():
         
         st.markdown("---")
 
-        # **KRİTİK DÜZELTME: st.form_submit_button yerine st.button ve form mantığı**
+        # **KRİTİK BÖLGE: AKSİYON FORMU**
         
         with st.form(key="action_form"):
             st.markdown("### 🛠️ Aksiyon Seç")
             tab_plant, tab_action, tab_special = st.tabs(["🌱 EKME", "💧 TEMEL AKSİYON", "✨ İLERİ TEKNİKLER"])
-            
-            # Tüm butonlar artık standart st.button yerine st.form_submit_button olarak kalacak.
-            # Ancak aksiyon tespiti callback ile yapılacak ve form submit edildiğinde işlenecek.
             
             with tab_plant:
                 st.write("Düşünce Türü Seç (Boş Alan Gerekir):")
@@ -1011,26 +1016,27 @@ def main():
                 st.form_submit_button("🌳 Travma Dönüştür (3 AP)", help="Travma Kökünü Bilgeliğe dönüştürür. En az 3 güçlü destek gerektirir.", use_container_width=True,
                                       on_click=set_action_callback, args=("transform",), key="btn_transform")
 
+        # **KRİTİK AKSİYON İŞLEME VE TEMİZLEME**
         # Form gönderildikten sonra, eğer bir aksiyon kaydedilmişse çalıştır
         if st.session_state.action_clicked and st.session_state.next_action:
+            # Aksiyonu gerçekleştir
             handle_action(st.session_state.next_action, x, y, st.session_state.thought_type)
             
-            # Aksiyon bilgisini sıfırla ve yeniden çalıştır
+            # Aksiyon bilgisini sıfırla ve yeniden çalıştır (Sayfanın yenilenmesini sağlar)
             st.session_state.next_action = None
             st.session_state.thought_type = None
-            st.session_state.action_clicked = False
+            st.session_state.action_clicked = False # KRİTİK: Bir sonraki çalıştırmada tekrar tetiklenmeyi önler
             st.rerun()
 
         # TUR BİTİR BUTONU (FORM DIŞINDA)
         if st.button("⏭️ TURU BİTİR VE İLERLE", type="primary", use_container_width=True):
             handle_action("end_turn", x, y)
-            # st.rerun() zaten handle_action içindeki end_turn'den sonra otomatik olarak çağrılır (Form dışında olduğu için)
-            st.rerun()
-        
+            st.rerun() # Tur bittiğinde yenileme garantisi
+
+        # İstatistikler ve Başarımlar (Değişmedi)
         st.markdown("---")
         
-        # İstatistikler ve Başarımlar (Değişmedi)
-        stats = MindGardenEngine(state).get_stats()
+        stats = engine.get_stats()
         with st.expander("📊 Bahçe İstatistikleri", expanded=False):
             col_s1, col_s2 = st.columns(2)
             with col_s1:
