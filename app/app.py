@@ -422,6 +422,13 @@ class MindGardenEngine:
 # VISUALIZATION
 # ============================================================================
 
+def get_cell_config(cell_type: CellType) -> Dict:
+    """Hucre config'ini guvenli sekilde getir"""
+    if cell_type in CELL_CONFIGS:
+        return CELL_CONFIGS[cell_type]
+    else:
+        return CELL_CONFIGS[CellType.EMPTY]
+
 def create_garden_visualization(state: GameState):
     """Bahce gorsellestirmesi olustur"""
     z_data = []
@@ -432,7 +439,7 @@ def create_garden_visualization(state: GameState):
         hover_row = []
         
         for x, cell in enumerate(row):
-            config = CELL_CONFIGS[cell.type]
+            config = get_cell_config(cell.type)
             z_row.append(cell.health)
             hover_row.append(
                 f"{config['emoji']} {config['name']}<br>"
@@ -446,7 +453,7 @@ def create_garden_visualization(state: GameState):
     
     fig = go.Figure(data=go.Heatmap(
         z=z_data,
-        text=[[CELL_CONFIGS[cell.type]['emoji'] for cell in row] for row in state.grid],
+        text=[[get_cell_config(cell.type)['emoji'] for cell in row] for row in state.grid],
         hovertext=hover_text,
         hoverinfo='text',
         colorscale=[[0, '#F8F9FA'], [1, '#4ECDC4']],
@@ -546,7 +553,7 @@ def main():
         if st.session_state.selected_cell:
             x, y = st.session_state.selected_cell
             cell = state.grid[y][x]
-            config = CELL_CONFIGS[cell.type]
+            config = get_cell_config(cell.type)
             
             st.info(f"**Secili:** {config['emoji']} {config['name']} ({x},{y})\n\n"
                    f"Saglik: {cell.health} | Enerji: {cell.energy} | Yas: {cell.age}")
