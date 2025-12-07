@@ -1,219 +1,257 @@
-import streamlit as st
+import random
+import time
+import os
 
-# --- STATE INIT ---
-if "scene" not in st.session_state:
-    st.session_state.scene = "start"
-if "mind" not in st.session_state:
-    st.session_state.mind = 10
-if "grit" not in st.session_state:
-    st.session_state.grit = 10
-if "rep" not in st.session_state:
-    st.session_state.rep = 5
-if "cash" not in st.session_state:
-    st.session_state.cash = 25
-if "items" not in st.session_state:
-    st.session_state.items = []
-if "clues" not in st.session_state:
-    st.session_state.clues = []
-if "health" not in st.session_state:
-    st.session_state.health = 10
+# ---------------------- YARDIMCI FONKSİYONLAR ---------------------- #
 
+def clear_screen():
+    # Ekranı temizler (Windows / Mac / Linux)
+    os.system("cls" if os.name == "nt" else "clear")
 
-def goto(scene):
-    st.session_state.scene = scene
-    st.rerun()  # DÜZELTİLMİŞ
+def slow_print(text, delay=0.015):
+    for ch in text:
+        print(ch, end="", flush=True)
+        time.sleep(delay)
+    print()
 
+def wait_enter(msg="\nDevam etmek için Enter'a basın..."):
+    input(msg)
 
-def add_clue(c):
-    if c not in st.session_state.clues:
-        st.session_state.clues.append(c)
+# ---------------------- OYUN VERİLERİ ---------------------- #
 
+# Kategoriler: TANIMA, DERIN, ROMANTIK
+CARDS = [
+    # TANIMA
+    {
+        "category": "Tanıma",
+        "type": "soru",
+        "text": "Partnerinde seni en çok şaşırtan özellik ne oldu?"
+    },
+    {
+        "category": "Tanıma",
+        "type": "soru",
+        "text": "Çocukluğundan bugününü etkilediğini düşündüğün bir anını paylaş."
+    },
+    {
+        "category": "Tanıma",
+        "type": "görev",
+        "text": "Birbirinize ilk tanışma anınızı, sanki film sahnesini anlatır gibi yeniden anlatın."
+    },
+    # DERIN
+    {
+        "category": "Derin Sohbet",
+        "type": "soru",
+        "text": "Bu ilişkide en çok ne zaman kendini gerçekten 'güvende' hissettin?"
+    },
+    {
+        "category": "Derin Sohbet",
+        "type": "soru",
+        "text": "Partnerinden duyduğunda seni en çok şifalandıran cümle neydi?"
+    },
+    {
+        "category": "Derin Sohbet",
+        "type": "görev",
+        "text": "Birbiriniz için şu cümleyi tamamlayın: 'Sende en çok sevdiğim şey...'"
+    },
+    # ROMANTIK (buradakileri daha flörtöz yapabilir, istersen kendin +18'leştirebilirsin)
+    {
+        "category": "Romantik & Flörtöz",
+        "type": "görev",
+        "text": "Partnerine 30 saniye boyunca sadece gözlerinin içine bak ve hiçbir şey söyleme."
+    },
+    {
+        "category": "Romantik & Flörtöz",
+        "type": "görev",
+        "text": "Partnerine bugün için minnettar olduğun 3 şeyi sırayla söyle."
+    },
+    {
+        "category": "Romantik & Flörtöz",
+        "type": "mini-oyun",
+        "text": "Taş-kâğıt-makas oynayın. Kaybeden, kazananın seçtiği küçük bir jesti yapmak zorunda."
+    },
+]
 
-def add_item(i):
-    if i not in st.session_state.items:
-        st.session_state.items.append(i)
+# Buraya kendi özel kartlarını ekleyebilirsin.
+# Örn: 'text' kısmını kendin çok daha cesur hale getirebilirsin.
+CUSTOM_CARDS = [
+    # ÖRNEK (bunu istediğin gibi değiştirebilirsin)
+    # {
+    #     "category": "Özel",
+    #     "type": "görev",
+    #     "text": "Buraya sadece sizin bildiğiniz özel bir görev yazın. ;)"
+    # }
+]
 
+ALL_CARDS = CARDS + CUSTOM_CARDS
 
-# --- SCENES ---
-def scene_start():
-    st.title("Noir Dedektif - Streamlit Metin Oyunu")
-    st.write("Yagmur sokaklara vuruyor. Masanda bir zarf duruyor.")
+# ---------------------- OYUN SINIFI ---------------------- #
 
-    if st.button("Zarfa bak"):
-        goto("envelope")
+class CiftOyunu:
+    def __init__(self):
+        self.player1 = ""
+        self.player2 = ""
+        self.scores = {}
+        self.deck = []
+        self.current_player_index = 0
+        self.players = []
+        self.max_score = 10  # İstenirse değiştirilebilir
 
-    if st.button("Polis kayitlarina bak"):
-        goto("police")
+    def setup_players(self):
+        clear_screen()
+        slow_print("Bağlantı: Çift Oyunu'na hoş geldiniz 💫\n")
+        self.player1 = input("1. oyuncunun adı/nick'i: ").strip() or "Oyuncu 1"
+        self.player2 = input("2. oyuncunun adı/nick'i: ").strip() or "Oyuncu 2"
+        self.players = [self.player1, self.player2]
+        self.scores = {self.player1: 0, self.player2: 0}
 
-    if st.button("Kahveye in"):
-        goto("cafe")
+    def choose_mode(self):
+        clear_screen()
+        slow_print("Oyun modu seçin:\n")
+        print("1) Karışık kartlar (tümü)")
+        print("2) Sadece Tanıma")
+        print("3) Sadece Derin Sohbet")
+        print("4) Sadece Romantik & Flörtöz")
+        print("5) Özel + Karışık (varsa CUSTOM_CARDS ile birlikte)\n")
 
+        choice = input("Seçiminiz (1-5): ").strip()
+        categories = []
 
-def scene_envelope():
-    st.write("Zarfin icinden bir foto ve bir not cikiyor: 'BR13 depo - 00:00'")
-    add_clue("BR13 depo notu")
-
-    if st.button("Depoya git"):
-        goto("warehouse")
-
-    if st.button("Polise goster"):
-        goto("police")
-
-    if st.button("Geri dön"):
-        goto("start")
-
-
-def scene_police():
-    st.write("Polis memuru BR13'un kayip insanlar ile baglantili oldugunu soyluyor.")
-    st.session_state.cash += 10
-    st.info("Memur sana 10 TL verdi.")
-
-    if st.button("Depoya git"):
-        goto("warehouse")
-
-    if st.button("Kahveye git"):
-        goto("cafe")
-
-    if st.button("Geri don"):
-        goto("start")
-
-
-def scene_cafe():
-    st.write("Kahvede insanlar BR13 deposunu konusuyor. Barmen bilgi verebilir.")
-
-    if st.session_state.cash >= 10:
-        if st.button("10 TL ver (ipucu al)"):
-            st.session_state.cash -= 10
-            add_clue("Bekci para ile ikna olur")
-            goto("warehouse")
-
-    if st.button("Ikna etmeye calis"):
-        add_clue("Barmen seni pek sevmedi")
-        goto("start")
-
-    if st.button("Geri don"):
-        goto("start")
-
-
-def scene_warehouse():
-    st.write("Depo onunde bir bekci var.")
-
-    if st.session_state.cash >= 20:
-        if st.button("20 TL ver ve iceri gir"):
-            st.session_state.cash -= 20
-            goto("inside")
-
-    if st.button("Ikna et"):
-        goto("inside")
-
-    if "Tabanca" in st.session_state.items:
-        if st.button("Zorla gir"):
-            goto("inside")
-
-    if st.button("Geri don"):
-        goto("start")
-
-
-def scene_inside():
-    st.write("Depo icinde kutular ve kilitli bir oda var.")
-
-    if st.button("Kutuyu ac"):
-        add_item("Anahtar")
-        add_clue("Kutudan anahtar cikti")
-        st.success("Anahtar alindi!")
-
-    if st.button("Dosyayi incele"):
-        add_clue("Teslimat saati 03:00")
-
-    if st.button("Kilitli odayi ac"):
-        if "Anahtar" in st.session_state.items:
-            goto("room")
+        if choice == "2":
+            categories = ["Tanıma"]
+        elif choice == "3":
+            categories = ["Derin Sohbet"]
+        elif choice == "4":
+            categories = ["Romantik & Flörtöz"]
+        elif choice == "5":
+            categories = ["Tanıma", "Derin Sohbet", "Romantik & Flörtöz", "Özel"]
         else:
-            st.error("Anahtar yok.")
+            # 1 veya geçersiz ise karışık tümü
+            categories = ["Tanıma", "Derin Sohbet", "Romantik & Flörtöz", "Özel"]
 
-    if st.button("Geri don"):
-        goto("warehouse")
+        # Deste oluştur
+        self.deck = [
+            card for card in ALL_CARDS
+            if card["category"] in categories
+        ]
 
+        if not self.deck:
+            slow_print("Bu kategori seçimiyle hiç kart yok. Varsayılan olarak tüm kartlar seçildi.")
+            self.deck = ALL_CARDS[:]
 
-def scene_room():
-    st.write("Odayi actin. Iceride kayip insanlar var.")
-    add_item("Tanik")
+        random.shuffle(self.deck)
 
-    if st.button("Taniklari alip rihtima git"):
-        goto("dock")
+    def show_scores(self):
+        print("\n--- SKOR TABLOSU ---")
+        for p, s in self.scores.items():
+            print(f"{p}: {s} puan")
+        self.show_bond_level()
 
-    if st.button("Polise teslim et"):
-        goto("police_after")
+    def show_bond_level(self):
+        # Yakınlık seviyesi (maks skora göre basit bir bar)
+        total = sum(self.scores.values())
+        max_total = self.max_score * 2
+        ratio = total / max_total if max_total > 0 else 0
+        bar_length = 20
+        filled = int(bar_length * ratio)
+        bar = "█" * filled + "-" * (bar_length - filled)
+        print(f"\nYakınlık Seviyesi: [{bar}] {int(ratio * 100)}%")
 
+    def draw_card(self):
+        if not self.deck:
+            # Kartlar biterse tekrar karıştır
+            self.deck = ALL_CARDS[:]
+            random.shuffle(self.deck)
+        return self.deck.pop()
 
-def scene_police_after():
-    st.write("Polis resmi sorusturma acti.")
+    def next_player(self):
+        self.current_player_index = (self.current_player_index + 1) % len(self.players)
 
-    if st.button("Basina haber ver"):
-        goto("end_mixed")
+    def play_round(self):
+        clear_screen()
+        current = self.players[self.current_player_index]
+        slow_print(f"Sıra sende: {current} ✨\n")
+        wait_enter("Kart çekmek için Enter'a bas...")
 
-    if st.button("Rihtima git"):
-        goto("dock")
+        card = self.draw_card()
 
+        slow_print(f"\nKategori: {card['category']}")
+        slow_print(f"Tür: {card['type'].capitalize()}")
+        slow_print("\nKart:")
+        slow_print(f"{card['text']}")
 
-def scene_dock():
-    st.write("Sisli bir rihtim. Bir teslimat bekleniyor.")
+        print("\nBu kartı birlikte uyguladıktan/cevapladıktan sonra 'bitti' diyebilirsiniz.")
+        done = input("Kartı uyguladınız mı? (e/h): ").strip().lower()
 
-    if st.button("Gizlice izle"):
-        goto("stakeout")
+        if done == "e":
+            self.scores[current] += 1
+            slow_print(f"\nHarika! {current} +1 puan kazandı. 🎉")
+        else:
+            slow_print(f"\nSorun değil, bazen beklemek de oyunun parçası. 🙂")
 
-    if st.button("Mudahale et"):
-        goto("intervene")
+        self.show_scores()
+        wait_enter()
+        self.next_player()
 
+    def check_winner(self):
+        for p, s in self.scores.items():
+            if s >= self.max_score:
+                return p
+        return None
 
-def scene_stakeout():
-    st.write("Siyah bir sedan geliyor. Cuvallarda ses var.")
+    def end_game_message(self, winner):
+        clear_screen()
+        slow_print("Oyun bitti! 💖\n")
+        if winner:
+            slow_print(f"Kazanan: {winner} 🎉")
+        else:
+            slow_print("Bu turda belirgin bir kazanan yok, ama asıl kazanan aranızdaki bağ oldu. 💫")
+        self.show_scores()
+        print("\nİsterseniz kod içindeki kartları değiştirerek oyunu kendi ilişkinize göre 'özelleştirebilirsiniz'. 😉")
 
-    if st.button("Polisi ara"):
-        goto("end_mixed")
+    def main_menu(self):
+        while True:
+            clear_screen()
+            slow_print("Bağlantı: Çift Oyunu 💞\n")
+            print("1) Oyuna Başla")
+            print("2) Kurallar")
+            print("3) Çıkış\n")
+            choice = input("Seçiminiz (1-3): ").strip()
 
-    if st.button("Kendin mudahale et"):
-        goto("intervene")
+            if choice == "1":
+                self.setup_players()
+                self.choose_mode()
+                self.game_loop()
+            elif choice == "2":
+                self.show_rules()
+            elif choice == "3":
+                clear_screen()
+                slow_print("Görüşmek üzere, aranızdaki bağ hep güçlensin. 💫")
+                break
+            else:
+                slow_print("Geçersiz seçim, lütfen tekrar deneyin.")
+                time.sleep(1.3)
 
+    def show_rules(self):
+        clear_screen()
+        slow_print("Kurallar / Mantık:\n")
+        slow_print("- Oyun iki kişiyle, aynı cihazdan oynanır.")
+        slow_print("- Sırası gelen oyuncu bir kart çeker.")
+        slow_print("- Kart; soru, görev veya mini oyun içerebilir.")
+        slow_print("- Kartı birlikte uyguladıktan sonra 'e' derseniz o oyuncu +1 puan alır.")
+        slow_print(f"- İlk {self.max_score} puana ulaşan kazanır (isterseniz koddan değiştirebilirsiniz).")
+        slow_print("- Kod içindeki CARDS ve CUSTOM_CARDS listelerini değiştirerek kendi özel kartlarınızı ekleyebilirsiniz.")
+        wait_enter()
 
-def scene_intervene():
-    st.write("Mudahale ediyorsun...")
+    def game_loop(self):
+        winner = None
+        while not winner:
+            self.play_round()
+            winner = self.check_winner()
+        self.end_game_message(winner)
+        wait_enter()
 
-    if st.button("Sessiz mudahale"):
-        goto("end_good")
+# ---------------------- ÇALIŞTIR ---------------------- #
 
-    if st.button("Gurultulu mudahale"):
-        goto("end_bad")
-
-
-def scene_end_good():
-    st.success("Basarili oldun. Insanlari kurtardin. Oyun bitti.")
-
-
-def scene_end_bad():
-    st.error("Mudahale basarisiz oldu. Oyun bitti.")
-
-
-def scene_end_mixed():
-    st.warning("Son karisik. Bazi seyler cozuldu, bazi seyler havada kaldi.")
-
-
-# --- ROUTER ---
-scene_map = {
-    "start": scene_start,
-    "envelope": scene_envelope,
-    "police": scene_police,
-    "cafe": scene_cafe,
-    "warehouse": scene_warehouse,
-    "inside": scene_inside,
-    "room": scene_room,
-    "police_after": scene_police_after,
-    "dock": scene_dock,
-    "stakeout": scene_stakeout,
-    "intervene": scene_intervene,
-    "end_good": scene_end_good,
-    "end_bad": scene_end_bad,
-    "end_mixed": scene_end_mixed,
-}
-
-scene_map[st.session_state.scene]()
+if __name__ == "__main__":
+    game = CiftOyunu()
+    game.main_menu()
