@@ -21,58 +21,68 @@ if "health" not in st.session_state:
 
 def goto(scene):
     st.session_state.scene = scene
-    st.experimental_rerun()
+    st.rerun()  # DÜZELTİLMİŞ
+
 
 def add_clue(c):
     if c not in st.session_state.clues:
         st.session_state.clues.append(c)
+
 
 def add_item(i):
     if i not in st.session_state.items:
         st.session_state.items.append(i)
 
 
-# --- SCENES --- 
+# --- SCENES ---
 def scene_start():
-    st.title("Noir Dedektif - Metin Macera (Streamlit)")
+    st.title("Noir Dedektif - Streamlit Metin Oyunu")
     st.write("Yagmur sokaklara vuruyor. Masanda bir zarf duruyor.")
+
     if st.button("Zarfa bak"):
         goto("envelope")
+
     if st.button("Polis kayitlarina bak"):
         goto("police")
+
     if st.button("Kahveye in"):
         goto("cafe")
 
 
 def scene_envelope():
-    st.write("Zarfin icinden bir foto ve bir not cikiyor: 'BR13 depo. Saat 00:00'")
+    st.write("Zarfin icinden bir foto ve bir not cikiyor: 'BR13 depo - 00:00'")
     add_clue("BR13 depo notu")
 
     if st.button("Depoya git"):
         goto("warehouse")
+
     if st.button("Polise goster"):
         goto("police")
-    if st.button("Geri don"):
+
+    if st.button("Geri dön"):
         goto("start")
 
 
 def scene_police():
     st.write("Polis memuru BR13'un kayip insanlar ile baglantili oldugunu soyluyor.")
     st.session_state.cash += 10
-    st.info("Polisten 10 TL aldin.")
+    st.info("Memur sana 10 TL verdi.")
 
     if st.button("Depoya git"):
         goto("warehouse")
+
     if st.button("Kahveye git"):
         goto("cafe")
+
     if st.button("Geri don"):
         goto("start")
 
 
 def scene_cafe():
-    st.write("Kahvede insanlar BR13 deposunu konusuyor. Barmen yardimci olabilir.")
+    st.write("Kahvede insanlar BR13 deposunu konusuyor. Barmen bilgi verebilir.")
+
     if st.session_state.cash >= 10:
-        if st.button("10 TL ver ve bilgi al"):
+        if st.button("10 TL ver (ipucu al)"):
             st.session_state.cash -= 10
             add_clue("Bekci para ile ikna olur")
             goto("warehouse")
@@ -86,9 +96,10 @@ def scene_cafe():
 
 
 def scene_warehouse():
-    st.write("Depo onunde bekci duruyor.")
+    st.write("Depo onunde bir bekci var.")
+
     if st.session_state.cash >= 20:
-        if st.button("20 TL ode ve gir"):
+        if st.button("20 TL ver ve iceri gir"):
             st.session_state.cash -= 20
             goto("inside")
 
@@ -104,16 +115,15 @@ def scene_warehouse():
 
 
 def scene_inside():
-    st.write("Depo icerisi karanlik. Kutular ve kilitli bir oda var.")
+    st.write("Depo icinde kutular ve kilitli bir oda var.")
 
-    if st.button("Kutuya bak"):
+    if st.button("Kutuyu ac"):
         add_item("Anahtar")
-        add_clue("Kutudan anahtar cikti.")
-        st.success("Anahtar alindi.")
+        add_clue("Kutudan anahtar cikti")
+        st.success("Anahtar alindi!")
 
-    if st.button("Dosyalari incele"):
-        add_clue("Teslimat saat 03:00")
-        st.info("Not: Teslimat 03:00")
+    if st.button("Dosyayi incele"):
+        add_clue("Teslimat saati 03:00")
 
     if st.button("Kilitli odayi ac"):
         if "Anahtar" in st.session_state.items:
@@ -126,7 +136,7 @@ def scene_inside():
 
 
 def scene_room():
-    st.write("Odayi actin. Iceride kayip insanlar var. Bitkin ama hayattalar.")
+    st.write("Odayi actin. Iceride kayip insanlar var.")
     add_item("Tanik")
 
     if st.button("Taniklari alip rihtima git"):
@@ -137,7 +147,7 @@ def scene_room():
 
 
 def scene_police_after():
-    st.write("Polis resmi sorusturma acti. Bazi dosyalar yok olabilir.")
+    st.write("Polis resmi sorusturma acti.")
 
     if st.button("Basina haber ver"):
         goto("end_mixed")
@@ -157,7 +167,7 @@ def scene_dock():
 
 
 def scene_stakeout():
-    st.write("Siyah bir sedan geliyor. Bir cuvalda ses var.")
+    st.write("Siyah bir sedan geliyor. Cuvallarda ses var.")
 
     if st.button("Polisi ara"):
         goto("end_mixed")
