@@ -8,19 +8,15 @@ st.set_page_config(page_title="Logic Grid Flow", page_icon="⚡", layout="center
 def inject_custom_css():
     st.markdown("""
         <style>
-        /* Ana Arka Plan: Cyberpunk Siyah */
-        .stApp {
-            background-color: #050505;
-        }
-        
-        /* Başlık Stili */
+        /* Genel Stiller */
+        .stApp { background-color: #050505; }
         h1 {
             color: #00ffcc;
             text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
             font-family: 'Courier New', monospace;
             text-align: center;
         }
-        
+
         /* Buton Genel Stili */
         div.stButton > button {
             width: 100%;
@@ -34,13 +30,6 @@ def inject_custom_css():
             transition: all 0.3s ease;
             line-height: 1 !important;
         }
-        
-        /* Hover Efekti */
-        div.stButton > button:hover {
-            border-color: #00ffcc;
-            color: #00ffcc;
-            box-shadow: 0 0 8px #00ffcc;
-        }
 
         /* AKTİF AKIŞ (Primary Butonlar) - Neon Yeşil */
         div.stButton > button[kind="primary"] {
@@ -49,16 +38,26 @@ def inject_custom_css():
             border-color: #00ff00 !important;
             box-shadow: 0 0 15px #00ff00;
         }
-
-        /* KİLİTLİ PARÇALAR - Kırmızı Çerçeve */
+        
+        /* KİLİTLİ PARÇALAR */
         div.stButton > button:disabled {
             background-color: #1a0000;
             color: #ff0000;
             border-color: #ff0000;
             opacity: 0.8;
-            cursor: not-allowed;
+            cursor: default;
         }
         
+        /* YILDIRIM (⚡) ve BATARYA (🔋) Özel Görünümü (Daha Parlak ve Büyük) */
+        .stButton button:has(> div > p:contains("⚡")),
+        .stButton button:has(> div > p:contains("🔋")) {
+            font-size: 36px !important;
+            color: #ffcc00 !important; /* Altın Sarısı */
+            border-color: #ffcc00 !important;
+            box-shadow: 0 0 15px #ffcc00 !important;
+            background-color: #333300 !important;
+        }
+
         /* Bilgilendirme Kutusu */
         .info-box {
             background-color: #111;
@@ -84,15 +83,10 @@ class Piece:
             self.rotation = (self.rotation + 90) % 360
 
     def get_connections(self):
-        """ Parçanın rotasyonuna göre açık bağlantı yönlerini (0:N, 1:E, 2:S, 3:W) döndürür. """
+        # Yönler: 0:N, 1:E, 2:S, 3:W
         base_connections = {
-            "Straight": [0, 2],
-            "Corner":   [0, 1],
-            "T-Shape":  [1, 2, 3],
-            "Cross":    [0, 1, 2, 3],
-            "Start":    [1], # Default
-            "End":      [3], # Default
-            "Empty":    []
+            "Straight": [0, 2], "Corner": [0, 1], "T-Shape": [1, 2, 3], "Cross": [0, 1, 2, 3],
+            "Start": [1], "End": [3], "Empty": []
         }
         base = base_connections.get(self.type, [])
         rotation_steps = self.rotation // 90
@@ -110,7 +104,7 @@ class Grid:
         self.end_pos = (0, 0)
 
     def load_level(self, level_data):
-        """ JSON'daki çözülmüş hali yükler ve rastgele kilitler ekler (Karıştırma yok). """
+        """ Çözülebilirliği garanti eder: Parçalar çözülmüş rotasyonda başlar, rastgele kilitlenir. """
         self.size = level_data["size"]
         self.start_pos = tuple(level_data["start_pos"])
         self.end_pos = tuple(level_data["end_pos"])
@@ -128,7 +122,7 @@ class Grid:
                 rotation = 0
                 is_locked = False
                 
-                # Rotasyon ve Kilit parsing (JSON'dan gelen çözülmüş rotasyon)
+                # JSON'dan gelen çözülmüş rotasyonu oku
                 if '90' in code: rotation = 90
                 elif '180' in code: rotation = 180
                 elif '270' in code: rotation = 270
@@ -138,14 +132,13 @@ class Grid:
                 
                 piece = Piece(p_type, rotation, is_locked)
                 
-                # Start ve End rotasyonlarını düzelt
+                # Start ve End rotasyonlarını düzelt (Kullanıcı girişindeki kod yapısına göre)
                 if p_type == 'Start': piece.rotation = int(code[1:]) if len(code) > 1 and code[1:].isdigit() else 0
                 if p_type == 'End': piece.rotation = int(code[1:]) if len(code) > 1 and code[1:].isdigit() else 0
                 
-                # Çözülebilirliği bozmamak için rastgele karıştırmayı kaldırıyoruz.
-                # SADECE rastgele kilit ekliyoruz (Çözümün karmaşıklık seviyesi).
+                # Dinamik Blokaj Mekaniği için İlk Kilit (Karışıklık)
                 if not is_locked and p_type not in ['Start', 'End', 'Empty']:
-                    if random.random() < 0.3: # %30 ihtimalle ilk başta kilitli başlasın
+                    if random.random() < 0.3: 
                          piece.is_locked = True 
 
                 row_pieces.append(piece)
@@ -158,11 +151,10 @@ class Grid:
         self.check_flow()
 
     def apply_dynamic_blockage(self, last_r, last_c):
-        """ GÜNCELLENMİŞ VE YUMUŞATILMIŞ Dinamik Blokaj Mekaniği. """
+        """ GÜNCELLENMİŞ VE DENGELİ Dinamik Blokaj Mekaniği. """
         candidates = []
         for r in range(self.size):
             for c in range(self.size):
-                # Başlangıç, Bitiş, Boş ve Son Oynanan yerleri hariç tut
                 if (r, c) != (last_r, last_c) and (r, c) != self.start_pos and (r, c) != self.end_pos:
                      if self.grid_state[r][c].type not in ['Start', 'End', 'Empty']:
                         candidates.append((r, c))
@@ -171,11 +163,10 @@ class Grid:
             tr, tc = random.choice(candidates)
             target = self.grid_state[tr][tc]
             
-            # %60 Kilit Açma / %40 Kilitleme (Oyuncuyu ödüllendiren denge)
-            if random.random() < 0.6:
+            if random.random() < 0.6: # %60 Kilit Açma ihtimali (Oyuncu lehine)
                 if target.is_locked:
                     target.is_locked = False
-            else:
+            else: # %40 Kilitleme ihtimali
                 if not target.is_locked:
                     target.is_locked = True
 
@@ -194,7 +185,7 @@ class Grid:
             curr_piece = self.grid_state[cr][cc]
             curr_conns = curr_piece.get_connections()
             directions = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
-            opposite_map = {0: 2, 1: 3, 2: 0, 3: 1} # Karşı yön haritası
+            opposite_map = {0: 2, 1: 3, 2: 0, 3: 1}
             
             for direction in curr_conns:
                 dr, dc = directions[direction]
@@ -211,11 +202,32 @@ class Grid:
         er, ec = self.end_pos
         return self.grid_state[er][ec].is_flow_active
 
-# --- 3. SEVİYE VERİLERİ (Çözülmüş Durumda Verilmiştir) ---
+    def find_first_misplaced_piece(self, original_level_data):
+        """ İpucu mekanizması için doğru pozisyonda olmayan ilk parçayı bulur. """
+        original_grid_data = original_level_data["grid"]
+        
+        for r in range(self.size):
+            for c in range(self.size):
+                current_piece = self.grid_state[r][c]
+                original_code = original_grid_data[r][c]
+                
+                if not current_piece.is_locked and current_piece.type not in ['Start', 'End', 'Empty']:
+                    
+                    original_rotation = 0
+                    if '90' in original_code: original_rotation = 90
+                    elif '180' in original_code: original_rotation = 180
+                    elif '270' in original_code: original_rotation = 270
+
+                    if current_piece.rotation != original_rotation:
+                        return (r, c)
+        return None
+
+# --- 3. SEVİYE VERİLERİ ---
 LEVELS = {
     1: {"name": "Başlangıç Sinyali", "size": 4, "start_pos": [0, 0], "end_pos": [3, 3], "grid": [["A1", "S90", "C90", "C180"], ["C180", "T270", "S", "C90"], ["S", "C180", "T", "C270"], ["C90", "C", "S90", "Z270"]]},
     2: {"name": "Çapraz Ateş", "size": 5, "start_pos": [2, 0], "end_pos": [2, 4], "grid": [["C", "S", "T", "S", "C"], ["S", "C90", "X", "C270", "S"], ["A1", "T90", "X", "T270", "Z3"], ["S", "C180", "X", "C", "S"], ["C", "S", "T", "S", "C"]]},
-    3: {"name": "Siber Labirent", "size": 5, "start_pos": [0, 2], "end_pos": [4, 2], "grid": [["C270", "S", "A0", "S", "C90"], ["S", "T270", "S", "T90", "S"], ["T", "X", "S", "X", "T"], ["S", "C", "S", "C", "S"], ["C", "S90", "Z2", "S90", "C"]]}}
+    3: {"name": "Siber Labirent", "size": 5, "start_pos": [0, 2], "end_pos": [4, 2], "grid": [["C270", "S", "A0", "S", "C90"], ["S", "T270", "S", "T90", "S"], ["T", "X", "S", "X", "T"], ["S", "C", "S", "C", "S"], ["C", "S90", "Z2", "S90", "C"]]}
+}
 
 def get_symbol(p_type, rotation):
     chars = {
@@ -229,7 +241,7 @@ def get_symbol(p_type, rotation):
     }
     return chars.get(p_type, {}).get(rotation, "?")
 
-# --- 4. KARŞILAMA EKRANI VE OYUN MANTIĞI ---
+# --- 4. KARŞILAMA VE OYUN ARAYÜZÜ ---
 
 def show_welcome_screen():
     st.markdown("<h1 style='font-size: 60px;'>⚡ LOGIC GRID FLOW</h1>", unsafe_allow_html=True)
@@ -241,7 +253,7 @@ def show_welcome_screen():
         <div class="info-box">
             <h4>🎮 Nasıl Oynanır?</h4>
             <ol style="line-height: 1.8; color: #ccc;">
-                <li><b>Amacın:</b> Enerji kaynağından (⚡) çıkan neon ışığını bataryaya (🔋) ulaştırmak.</li>
+                <li><b>Amacın:</b> Enerji kaynağından (<span style="color:#ffcc00;">⚡</span>) çıkan neon ışığını bataryaya (<span style="color:#ffcc00;">🔋</span>) ulaştırmak.</li>
                 <li><b>Kontrol:</b> Boru parçalarına tıklayarak onları <b>90 derece döndür</b> ve yolu tamamla.</li>
                 <li><b>Yeşil Işık:</b> Eğer bir parçadan elektrik geçiyorsa rengi <span style="color:#00ff00;"><b>Neon Yeşil</b></span> olur.</li>
             </ol>
@@ -249,7 +261,7 @@ def show_welcome_screen():
             <h4>⚠️ Kritik Uyarı: "Kaos Faktörü"</h4>
             <p style="color: #ff5555;">Bu sıradan bir bulmaca değil! Her hamlenizde sistemin <b>Güvenlik Protokolü</b> devreye girebilir:</p>
             <ul>
-                <li>Bir parçayı döndürdüğünüzde, haritadaki başka bir parça <b>aniden kilitlenebilir</b> (🔒) veya kilidi açılabilir (Daha sık).</li>
+                <li>Bir parçayı döndürdüğünüzde, haritadaki başka bir parça <b>aniden kilitlenebilir</b> (🔒) veya kilidi açılabilir.</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
@@ -269,6 +281,7 @@ def render_game_ui():
         
         st.progress(st.session_state.level_id / len(LEVELS), text="Oyun İlerlemesi")
         
+        st.markdown("---")
         if st.button("🏠 Ana Menüye Dön"):
             st.session_state.game_active = False
             st.rerun()
@@ -277,6 +290,22 @@ def render_game_ui():
             st.session_state.grid_obj.load_level(LEVELS[st.session_state.level_id])
             st.session_state.moves = 0
             st.rerun()
+        
+        # İpucu Sistemi
+        st.markdown("---")
+        st.header("🔍 İpucu Sistemi")
+        if st.button("❓ İpucu Al", type="secondary", use_container_width=True):
+            level_id = st.session_state.level_id
+            original_data = LEVELS[level_id]
+            
+            hint_coord = grid.find_first_misplaced_piece(original_data)
+            
+            if hint_coord:
+                hr, hc = hint_coord
+                # Kullanıcıya 1'den başlayan koordinatları göster
+                st.warning(f"İpucu: Boru yolunu açmak için, ({hr+1}, {hc+1}) pozisyonundaki parçayı kontrol edin!")
+            else:
+                st.info("Harika! Çözüm yolundaki tüm açık parçalar doğru yönde görünüyor. Yolunuzu kilitli bir parça tıkıyor olabilir.")
 
     st.title(f"Seviye {st.session_state.level_id}: {LEVELS[st.session_state.level_id]['name']}")
     
@@ -330,7 +359,7 @@ def render_game_ui():
 def main():
     inject_custom_css()
     
-    # Session State Başlatma ve Durum Kontrolü
+    # Session State Başlatma
     if 'game_active' not in st.session_state:
         st.session_state.game_active = False
         
