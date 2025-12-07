@@ -1,378 +1,196 @@
 import streamlit as st
 import random
-from collections import deque
+import time
 
-# --- 1. AYARLAR VE CSS TASARIMI ---
-st.set_page_config(page_title="Logic Grid Flow", page_icon="⚡", layout="centered")
+# --- 1. AYARLAR VE SABİTLER ---
+
+# Kelimeler (Türkçe anlamları) ve karşılık gelen HEX kodları
+COLORS = {
+    "KIRMIZI": "#FF0000",
+    "MAVİ": "#0000FF",
+    "YEŞİL": "#00AA00",
+    "SARI": "#CCCC00",
+    "MOR": "#800080",
+    "TURUNCU": "#FF8C00"
+}
+COLOR_NAMES = list(COLORS.keys())
+TOTAL_TIME = 60 # Saniye
+
+# --- 2. CSS ve Görsel Ayarlar ---
 
 def inject_custom_css():
     st.markdown("""
         <style>
-        /* Genel Stiller */
-        .stApp { background-color: #050505; }
-        h1 {
-            color: #00ffcc;
-            text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
-            font-family: 'Courier New', monospace;
+        .stApp {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
             text-align: center;
         }
-
-        /* Buton Genel Stili */
+        h1 {
+            color: #00ffcc;
+            font-size: 3em;
+        }
+        /* Oyundaki merkezi kelime için özel stil */
+        .color-word {
+            font-family: 'Arial Black', sans-serif;
+            font-size: 70px !important;
+            font-weight: 900;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            margin: 50px 0;
+            line-height: 1.2;
+        }
+        /* Buton stili */
         div.stButton > button {
-            width: 100%;
-            height: 60px;
-            font-size: 28px !important;
+            height: 80px;
+            font-size: 24px;
             font-weight: bold;
-            background-color: #1a1a1a;
-            color: #444;
-            border: 2px solid #333;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            line-height: 1 !important;
         }
-
-        /* AKTİF AKIŞ (Primary Butonlar) - Neon Yeşil */
-        div.stButton > button[kind="primary"] {
-            background-color: #003300 !important;
-            color: #00ff00 !important;
-            border-color: #00ff00 !important;
-            box-shadow: 0 0 15px #00ff00;
-        }
-        
-        /* KİLİTLİ PARÇALAR */
-        div.stButton > button:disabled {
-            background-color: #1a0000;
-            color: #ff0000;
-            border-color: #ff0000;
-            opacity: 0.8;
-            cursor: default;
-        }
-        
-        /* YILDIRIM (⚡) ve BATARYA (🔋) Özel Görünümü (Daha Parlak ve Büyük) */
-        .stButton button:has(> div > p:contains("⚡")),
-        .stButton button:has(> div > p:contains("🔋")) {
-            font-size: 36px !important;
-            color: #ffcc00 !important; /* Altın Sarısı */
-            border-color: #ffcc00 !important;
-            box-shadow: 0 0 15px #ffcc00 !important;
-            background-color: #333300 !important;
-        }
-
-        /* Bilgilendirme Kutusu */
-        .info-box {
-            background-color: #111;
-            padding: 20px;
+        .stSuccess {
+            background-color: #00AA00;
+            color: white;
+            padding: 10px;
             border-radius: 10px;
-            border: 1px solid #333;
-            margin-bottom: 20px;
         }
         </style>
     """, unsafe_allow_html=True)
 
-# --- 2. OYUN MANTIĞI VE SINIFLAR ---
+# --- 3. OYUN MANTIĞI FONKSİYONLARI ---
 
-class Piece:
-    def __init__(self, p_type, rotation=0, is_locked=False):
-        self.type = p_type
-        self.rotation = rotation
-        self.is_locked = is_locked
-        self.is_flow_active = False
+def init_state():
+    """Oyun durumunu başlatır/sıfırlar."""
+    if 'game_running' not in st.session_state:
+        st.session_state.game_running = False
+    if 'score' not in st.session_state:
+        st.session_state.score = 0
+    if 'start_time' not in st.session_state:
+        st.session_state.start_time = 0
+    if 'current_word' not in st.session_state:
+        st.session_state.current_word = None
+    if 'current_color' not in st.session_state:
+        st.session_state.current_color = None
+    if 'feedback' not in st.session_state:
+        st.session_state.feedback = ""
+    if 'correct_answer' not in st.session_state:
+        st.session_state.correct_answer = None
 
-    def rotate(self):
-        if not self.is_locked:
-            self.rotation = (self.rotation + 90) % 360
-
-    def get_connections(self):
-        # Yönler: 0:N, 1:E, 2:S, 3:W
-        base_connections = {
-            "Straight": [0, 2], "Corner": [0, 1], "T-Shape": [1, 2, 3], "Cross": [0, 1, 2, 3],
-            "Start": [1], "End": [3], "Empty": []
-        }
-        base = base_connections.get(self.type, [])
-        rotation_steps = self.rotation // 90
-        current_connections = set()
-        for direction in base:
-            new_dir = (direction + rotation_steps) % 4
-            current_connections.add(new_dir)
-        return current_connections
-
-class Grid:
-    def __init__(self, size=5):
-        self.size = size
-        self.grid_state = []
-        self.start_pos = (0, 0)
-        self.end_pos = (0, 0)
-
-    def load_level(self, level_data):
-        """ Çözülebilirliği garanti eder: Parçalar çözülmüş rotasyonda başlar, rastgele kilitlenir. """
-        self.size = level_data["size"]
-        self.start_pos = tuple(level_data["start_pos"])
-        self.end_pos = tuple(level_data["end_pos"])
-        self.grid_state = []
-
-        raw_grid = level_data["grid"]
-        for r in range(self.size):
-            row_pieces = []
-            for c in range(self.size):
-                code = raw_grid[r][c]
-                p_type_map = {'S': 'Straight', 'C': 'Corner', 'T': 'T-Shape', 'X': 'Cross', 'A': 'Start', 'Z': 'End', '.': 'Empty'}
-                
-                char_type = code[0]
-                p_type = p_type_map.get(char_type, 'Empty')
-                rotation = 0
-                is_locked = False
-                
-                # JSON'dan gelen çözülmüş rotasyonu oku
-                if '90' in code: rotation = 90
-                elif '180' in code: rotation = 180
-                elif '270' in code: rotation = 270
-                
-                if 'L' in code: is_locked = True
-                if p_type in ['Start', 'End']: is_locked = True
-                
-                piece = Piece(p_type, rotation, is_locked)
-                
-                # Start ve End rotasyonlarını düzelt (Kullanıcı girişindeki kod yapısına göre)
-                if p_type == 'Start': piece.rotation = int(code[1:]) if len(code) > 1 and code[1:].isdigit() else 0
-                if p_type == 'End': piece.rotation = int(code[1:]) if len(code) > 1 and code[1:].isdigit() else 0
-                
-                # Dinamik Blokaj Mekaniği için İlk Kilit (Karışıklık)
-                if not is_locked and p_type not in ['Start', 'End', 'Empty']:
-                    if random.random() < 0.3: 
-                         piece.is_locked = True 
-
-                row_pieces.append(piece)
-            self.grid_state.append(row_pieces)
-        self.check_flow()
-
-    def rotate_piece(self, r, c):
-        self.grid_state[r][c].rotate()
-        self.apply_dynamic_blockage(r, c)
-        self.check_flow()
-
-    def apply_dynamic_blockage(self, last_r, last_c):
-        """ GÜNCELLENMİŞ VE DENGELİ Dinamik Blokaj Mekaniği. """
-        candidates = []
-        for r in range(self.size):
-            for c in range(self.size):
-                if (r, c) != (last_r, last_c) and (r, c) != self.start_pos and (r, c) != self.end_pos:
-                     if self.grid_state[r][c].type not in ['Start', 'End', 'Empty']:
-                        candidates.append((r, c))
-        
-        if candidates and random.random() < 0.5: # %50 tetiklenme ihtimali
-            tr, tc = random.choice(candidates)
-            target = self.grid_state[tr][tc]
-            
-            if random.random() < 0.6: # %60 Kilit Açma ihtimali (Oyuncu lehine)
-                if target.is_locked:
-                    target.is_locked = False
-            else: # %40 Kilitleme ihtimali
-                if not target.is_locked:
-                    target.is_locked = True
-
-    def check_flow(self):
-        # BFS (Genişlik Öncelikli Arama) ile akışı hesapla
-        for r in range(self.size):
-            for c in range(self.size):
-                self.grid_state[r][c].is_flow_active = False
-        
-        queue = deque([self.start_pos])
-        sr, sc = self.start_pos
-        self.grid_state[sr][sc].is_flow_active = True
-        
-        while queue:
-            cr, cc = queue.popleft()
-            curr_piece = self.grid_state[cr][cc]
-            curr_conns = curr_piece.get_connections()
-            directions = {0: (-1, 0), 1: (0, 1), 2: (1, 0), 3: (0, -1)}
-            opposite_map = {0: 2, 1: 3, 2: 0, 3: 1}
-            
-            for direction in curr_conns:
-                dr, dc = directions[direction]
-                nr, nc = cr + dr, cc + dc
-                if 0 <= nr < self.size and 0 <= nc < self.size:
-                    neighbor = self.grid_state[nr][nc]
-                    if not neighbor.is_flow_active:
-                        needed_port = opposite_map[direction]
-                        if needed_port in neighbor.get_connections():
-                            neighbor.is_flow_active = True
-                            queue.append((nr, nc))
-
-    def is_solved(self):
-        er, ec = self.end_pos
-        return self.grid_state[er][ec].is_flow_active
-
-    def find_first_misplaced_piece(self, original_level_data):
-        """ İpucu mekanizması için doğru pozisyonda olmayan ilk parçayı bulur. """
-        original_grid_data = original_level_data["grid"]
-        
-        for r in range(self.size):
-            for c in range(self.size):
-                current_piece = self.grid_state[r][c]
-                original_code = original_grid_data[r][c]
-                
-                if not current_piece.is_locked and current_piece.type not in ['Start', 'End', 'Empty']:
-                    
-                    original_rotation = 0
-                    if '90' in original_code: original_rotation = 90
-                    elif '180' in original_code: original_rotation = 180
-                    elif '270' in original_code: original_rotation = 270
-
-                    if current_piece.rotation != original_rotation:
-                        return (r, c)
-        return None
-
-# --- 3. SEVİYE VERİLERİ ---
-LEVELS = {
-    1: {"name": "Başlangıç Sinyali", "size": 4, "start_pos": [0, 0], "end_pos": [3, 3], "grid": [["A1", "S90", "C90", "C180"], ["C180", "T270", "S", "C90"], ["S", "C180", "T", "C270"], ["C90", "C", "S90", "Z270"]]},
-    2: {"name": "Çapraz Ateş", "size": 5, "start_pos": [2, 0], "end_pos": [2, 4], "grid": [["C", "S", "T", "S", "C"], ["S", "C90", "X", "C270", "S"], ["A1", "T90", "X", "T270", "Z3"], ["S", "C180", "X", "C", "S"], ["C", "S", "T", "S", "C"]]},
-    3: {"name": "Siber Labirent", "size": 5, "start_pos": [0, 2], "end_pos": [4, 2], "grid": [["C270", "S", "A0", "S", "C90"], ["S", "T270", "S", "T90", "S"], ["T", "X", "S", "X", "T"], ["S", "C", "S", "C", "S"], ["C", "S90", "Z2", "S90", "C"]]}
-}
-
-def get_symbol(p_type, rotation):
-    chars = {
-        "Straight": {0: "║", 90: "═", 180: "║", 270: "═"},
-        "Corner":   {0: "╚", 90: "╔", 180: "╗", 270: "╝"},
-        "T-Shape":  {0: "╠", 90: "╦", 180: "╣", 270: "╩"},
-        "Cross":    {0: "╬", 90: "╬", 180: "╬", 270: "╬"},
-        "Start":    {0: "⚡", 90: "⚡", 180: "⚡", 270: "⚡"},
-        "End":      {0: "🔋", 90: "🔋", 180: "🔋", 270: "🔋"},
-        "Empty":    {0: " ", 90: " ", 180: " ", 270: " "}
-    }
-    return chars.get(p_type, {}).get(rotation, "?")
-
-# --- 4. KARŞILAMA VE OYUN ARAYÜZÜ ---
-
-def show_welcome_screen():
-    st.markdown("<h1 style='font-size: 60px;'>⚡ LOGIC GRID FLOW</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #888;'>Siber Enerji Hatlarını Onar</h3>", unsafe_allow_html=True)
+def generate_puzzle():
+    """Yeni bir kelime ve renk kombinasyonu oluşturur."""
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    # 1. Kelimeyi rastgele seç (MAVİ, KIRMIZI, vb.)
+    word = random.choice(COLOR_NAMES)
+    
+    # 2. Kelimenin gösterileceği rengi rastgele seç
+    displayed_color_name = random.choice(COLOR_NAMES)
+    hex_code = COLORS[displayed_color_name]
+    
+    # 3. Doğru cevabı belirle
+    # Eşleşiyor: Kelimenin ANLAMI ile RENGİ aynı ise (örn: Yazı 'MAVİ', Renk MAVİ)
+    is_match = (word == displayed_color_name)
+    
+    st.session_state.current_word = word
+    st.session_state.current_color = hex_code
+    st.session_state.correct_answer = "match" if is_match else "no_match"
+    st.session_state.feedback = ""
+    st.rerun()
+
+def handle_answer(user_answer):
+    """Kullanıcının cevabını kontrol eder ve skoru günceller."""
+    
+    # Oyuncunun cevabı doğru mu?
+    is_correct = (user_answer == st.session_state.correct_answer)
+    
+    if is_correct:
+        st.session_state.score += 1
+        st.session_state.feedback = "✅ DOĞRU!"
+    else:
+        st.session_state.feedback = "❌ YANLIŞ!"
+        # Yanlış cevapta puan düşürmeyerek daha motive edici yapalım.
+    
+    # Yeni bulmaca oluştur
+    generate_puzzle()
+
+
+# --- 4. ANA ARAYÜZ ---
+
+def main_game():
+    inject_custom_css()
+    init_state()
+
+    st.markdown("<h1>🧠 RENK FIRTINASI</h1>", unsafe_allow_html=True)
+    st.markdown("<h2>Hızlı karar ver, beynini test et!</h2>", unsafe_allow_html=True)
+
+    if not st.session_state.game_running:
         st.markdown("""
-        <div class="info-box">
-            <h4>🎮 Nasıl Oynanır?</h4>
-            <ol style="line-height: 1.8; color: #ccc;">
-                <li><b>Amacın:</b> Enerji kaynağından (<span style="color:#ffcc00;">⚡</span>) çıkan neon ışığını bataryaya (<span style="color:#ffcc00;">🔋</span>) ulaştırmak.</li>
-                <li><b>Kontrol:</b> Boru parçalarına tıklayarak onları <b>90 derece döndür</b> ve yolu tamamla.</li>
-                <li><b>Yeşil Işık:</b> Eğer bir parçadan elektrik geçiyorsa rengi <span style="color:#00ff00;"><b>Neon Yeşil</b></span> olur.</li>
-            </ol>
-            <hr style="border-color: #333;">
-            <h4>⚠️ Kritik Uyarı: "Kaos Faktörü"</h4>
-            <p style="color: #ff5555;">Bu sıradan bir bulmaca değil! Her hamlenizde sistemin <b>Güvenlik Protokolü</b> devreye girebilir:</p>
+        <div style="background-color: #222; padding: 20px; border-radius: 10px; margin-top: 30px;">
+            <h3>OYUN KURALLARI</h3>
+            <p>Ekranda beliren kelimeyi (örn: SARI) ve onun rengini (örn: Kırmızı) inceleyin.</p>
             <ul>
-                <li>Bir parçayı döndürdüğünüzde, haritadaki başka bir parça <b>aniden kilitlenebilir</b> (🔒) veya kilidi açılabilir.</li>
+                <li><span style="color:#00ffcc; font-weight:bold;">Eşleşiyor</span> butonuna, kelimenin anlamı ile rengi AYNI ise basın.</li>
+                <li><span style="color:#ff5555; font-weight:bold;">Eşleşmiyor</span> butonuna, kelimenin anlamı ile rengi FARKLI ise basın.</li>
             </ul>
+            <p style="font-size: 1.2em; font-weight: bold;">Amaç: 60 saniyede en yüksek skoru yapmak!</p>
         </div>
         """, unsafe_allow_html=True)
         
-        start_btn = st.button("SİSTEMİ BAŞLAT [START] 🚀", type="primary", use_container_width=True)
-        if start_btn:
-            st.session_state.game_active = True
+        if st.button("OYUNA BAŞLA (60 Saniye) 🚀", key="start_btn", type="primary", use_container_width=True):
+            st.session_state.game_running = True
+            st.session_state.score = 0
+            st.session_state.start_time = time.time()
+            generate_puzzle() # İlk bulmacayı oluştur
             st.rerun()
+        return
 
-def render_game_ui():
-    grid = st.session_state.grid_obj
-
-    with st.sidebar:
-        st.header("🎛 Kontrol Paneli")
-        st.write(f"**Seviye:** {LEVELS[st.session_state.level_id]['name']}")
-        st.write(f"**Hamle Sayısı:** {st.session_state.moves}")
-        
-        st.progress(st.session_state.level_id / len(LEVELS), text="Oyun İlerlemesi")
-        
-        st.markdown("---")
-        if st.button("🏠 Ana Menüye Dön"):
-            st.session_state.game_active = False
-            st.rerun()
-            
-        if st.button("🔄 Seviyeyi Sıfırla"):
-            st.session_state.grid_obj.load_level(LEVELS[st.session_state.level_id])
-            st.session_state.moves = 0
-            st.rerun()
-        
-        # İpucu Sistemi
-        st.markdown("---")
-        st.header("🔍 İpucu Sistemi")
-        if st.button("❓ İpucu Al", type="secondary", use_container_width=True):
-            level_id = st.session_state.level_id
-            original_data = LEVELS[level_id]
-            
-            hint_coord = grid.find_first_misplaced_piece(original_data)
-            
-            if hint_coord:
-                hr, hc = hint_coord
-                # Kullanıcıya 1'den başlayan koordinatları göster
-                st.warning(f"İpucu: Boru yolunu açmak için, ({hr+1}, {hc+1}) pozisyonundaki parçayı kontrol edin!")
-            else:
-                st.info("Harika! Çözüm yolundaki tüm açık parçalar doğru yönde görünüyor. Yolunuzu kilitli bir parça tıkıyor olabilir.")
-
-    st.title(f"Seviye {st.session_state.level_id}: {LEVELS[st.session_state.level_id]['name']}")
+    # --- OYUN ÇALIŞIYOR ---
     
-    # Kazanma Kontrolü
-    if grid.is_solved():
-        st.balloons()
-        st.success(f"🎉 SİSTEM ONARILDI! Toplam Hamle: {st.session_state.moves}")
+    elapsed_time = time.time() - st.session_state.start_time
+    time_left = max(0, TOTAL_TIME - int(elapsed_time))
+
+    if time_left == 0:
+        st.session_state.game_running = False
+        st.markdown(f"<h2>ZAMAN DOLDU! ⏱️</h2>")
+        st.markdown(f"<h1>FİNAL SKORUN: {st.session_state.score}</h1>", unsafe_allow_html=True)
+        if st.button("TEKRAR OYNA"):
+            init_state() # Durumu sıfırla
+            st.rerun()
+        return
         
-        c1, c2, c3 = st.columns([1,2,1])
-        with c2:
-            if st.session_state.level_id < len(LEVELS):
-                if st.button("SONRAKİ SEVİYEYE GEÇ ➡️", type="primary"):
-                    st.session_state.level_id += 1
-                    st.session_state.grid_obj.load_level(LEVELS[st.session_state.level_id])
-                    st.session_state.moves = 0
-                    st.rerun()
-            else:
-                st.info("🏆 Tebrikler! Tüm protokolleri başarıyla tamamladınız.")
-                if st.button("Başa Dön"):
-                    st.session_state.level_id = 1
-                    st.session_state.game_active = False
-                    st.rerun()
-
-    # Grid Render
-    c1, c2, c3 = st.columns([1, 6, 1])
-    with c2:
-        for r in range(grid.size):
-            cols = st.columns(grid.size)
-            for c in range(grid.size):
-                piece = grid.grid_state[r][c]
-                symbol = get_symbol(piece.type, piece.rotation)
-                btn_type = "primary" if piece.is_flow_active else "secondary"
-                
-                with cols[c]:
-                    is_disabled = piece.is_locked
-                    label = symbol
-                    
-                    clicked = st.button(
-                        label,
-                        key=f"btn_{r}_{c}_{st.session_state.moves}",
-                        type=btn_type,
-                        disabled=is_disabled,
-                        help="Döndürmek için tıkla" if not is_disabled else "KİLİTLİ - Kaos Faktörü Devrede!"
-                    )
-                    
-                    if clicked and not is_disabled:
-                        grid.rotate_piece(r, c)
-                        st.session_state.moves += 1
-                        st.rerun()
-
-def main():
-    inject_custom_css()
+    # --- Skor ve Süre Gösterimi ---
     
-    # Session State Başlatma
-    if 'game_active' not in st.session_state:
-        st.session_state.game_active = False
-        
-    if 'level_id' not in st.session_state:
-        st.session_state.level_id = 1
-        st.session_state.grid_obj = Grid()
-        st.session_state.grid_obj.load_level(LEVELS[1])
-        st.session_state.moves = 0
+    col1, col2, col3 = st.columns([1, 1, 1])
+    col1.metric("SKOR", st.session_state.score)
+    col2.metric("SÜRE", f"{time_left} s", delta_color="off")
+    col3.metric("GERİ BİLDİRİM", st.session_state.feedback if st.session_state.feedback else "Hazır Ol")
+    
+    st.markdown("---")
+    
+    # --- Kelime Gösterimi ---
+    
+    if st.session_state.current_word:
+        # Kelimeyi ve rengi merkezde göster
+        st.markdown(
+            f"<p class='color-word' style='color: {st.session_state.current_color};'>{st.session_state.current_word}</p>",
+            unsafe_allow_html=True
+        )
+    
+    # --- Cevap Butonları ---
+    
+    btn_col1, btn_col2 = st.columns(2)
 
-    if not st.session_state.game_active:
-        show_welcome_screen()
-    else:
-        render_game_ui()
+    with btn_col1:
+        # Kırmızı butonu yanlış/olumsuz durumlar için kullanalım
+        if st.button("EŞLEŞMİYOR ❌", key="no_match_btn", type="secondary", use_container_width=True):
+            handle_answer("no_match")
+            
+    with btn_col2:
+        # Yeşil butonu doğru/olumlu durumlar için kullanalım
+        if st.button("EŞLEŞİYOR ✅", key="match_btn", type="primary", use_container_width=True):
+            handle_answer("match")
+    
+    # Streamlit'i sürekli güncel tutmak için
+    if st.session_state.game_running:
+        time.sleep(0.1)
+        st.rerun()
+
 
 if __name__ == "__main__":
-    main()
+    main_game()
