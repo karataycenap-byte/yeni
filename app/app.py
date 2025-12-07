@@ -5,105 +5,149 @@ import random
 
 st.set_page_config(page_title="NOX: Gizli Bağ", page_icon="🖤", layout="centered")
 
-# MOR SİS / GLASSMORPHIC TEMA
+# MOR SİS + NEON GRADIENT TEMA
 st.markdown(
     """
     <style>
+    /* Arka plan ve genel tipografi */
     .stApp {
-        background: radial-gradient(circle at top, #3b1661 0, #1a0c2b 35%, #080510 100%) !important;
-        color: #f6efff;
-        font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        background: radial-gradient(circle at top, #3a0f55 0, #120018 45%, #020006 100%) !important;
+        color: #fdf2ff;
+        font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .block-container {
+        max-width: 820px;
+        padding-top: 2.5rem !important;
+        padding-bottom: 2.5rem !important;
     }
     h1, h2, h3, h4 {
-        color: #fdf9ff !important;
-        letter-spacing: 0.04em;
+        color: #fdf7ff !important;
+        letter-spacing: 0.06em;
     }
-    /* Ana kart */
-    .glass-card {
-        background: linear-gradient(135deg, rgba(35, 18, 60, 0.9), rgba(18, 8, 35, 0.92));
-        border-radius: 20px;
-        padding: 1.4rem 1.6rem;
-        border: 1px solid rgba(226, 210, 255, 0.45);
-        box-shadow:
-            0 0 25px rgba(186, 136, 255, 0.40),
-            0 0 80px rgba(102, 51, 204, 0.45);
-        backdrop-filter: blur(16px);
-    }
-    .pill {
-        display: inline-block;
-        padding: 0.18rem 0.8rem;
-        border-radius: 999px;
-        background: linear-gradient(120deg, rgba(199, 125, 255, 0.85), rgba(242, 233, 255, 0.75));
-        color: #230b3c;
-        font-size: 0.78rem;
-        font-weight: 600;
-        margin-right: 0.35rem;
+    h1 {
+        font-size: 2.2rem !important;
         text-transform: uppercase;
-    }
-    .pill-soft {
-        display: inline-block;
-        padding: 0.16rem 0.75rem;
-        border-radius: 999px;
-        border: 1px solid rgba(243, 230, 255, 0.45);
-        background: radial-gradient(circle at top, rgba(255, 255, 255, 0.12), rgba(32, 16, 60, 0.7));
-        color: #f2e8ff;
-        font-size: 0.78rem;
-        margin-right: 0.35rem;
+        text-align: center;
     }
     .subtitle {
-        color: #e0d3ff;
-        font-size: 0.9rem;
-    }
-    .center-text {
+        color: #e1ceff;
+        font-size: 0.95rem;
         text-align: center;
+        margin-top: -0.4rem;
+        margin-bottom: 1.4rem;
     }
-    /* Büyük mor-lila butonlar */
-    .primary-btn button {
-        width: 100% !important;
+
+    /* Form elemanları (input, select) – cam & oval */
+    .stTextInput input, .stSelectbox select {
+        background: rgba(8, 4, 20, 0.9) !important;
+        color: #fdf4ff !important;
         border-radius: 999px !important;
-        padding: 0.65rem 1.2rem !important;
-        font-weight: 600 !important;
-        border: none !important;
-        background: radial-gradient(circle at top left, #f2e9ff 0, #c77dff 35%, #8b5cf6 70%, #5b21b6 100%) !important;
-        color: #13061f !important;
-        box-shadow:
-            0 0 18px rgba(180, 130, 255, 0.7),
-            0 0 45px rgba(120, 72, 220, 0.8) !important;
+        border: 1px solid rgba(243, 220, 255, 0.65) !important;
+        padding: 0.55rem 0.9rem !important;
     }
-    .primary-btn button:hover {
-        filter: brightness(1.08);
+    .stTextInput input:focus, .stSelectbox select:focus {
+        border-color: rgba(255, 183, 255, 0.95) !important;
+        box-shadow: 0 0 0 1px rgba(255, 183, 255, 0.85) !important;
+    }
+
+    /* Neon butonlar */
+    div.stButton > button {
+        border-radius: 999px !important;
+        border: none !important;
+        padding: 0.6rem 1.3rem !important;
+        font-weight: 600 !important;
+        cursor: pointer;
+        background: radial-gradient(circle at top left,
+            #ffe9ff 0, #ff8fd1 35%, #c77dff 65%, #7c3aed 100%) !important;
+        color: #14031f !important;
+        box-shadow:
+            0 0 18px rgba(205, 140, 255, 0.75),
+            0 0 40px rgba(148, 87, 235, 0.9) !important;
+    }
+    div.stButton > button:hover {
+        filter: brightness(1.06);
         transform: translateY(-1px);
         box-shadow:
-            0 0 24px rgba(210, 170, 255, 0.9),
-            0 0 60px rgba(140, 90, 255, 0.95) !important;
+            0 0 22px rgba(235, 170, 255, 0.9),
+            0 0 55px rgba(170, 100, 255, 1) !important;
     }
     .ghost-btn button {
-        width: 100% !important;
         border-radius: 999px !important;
-        padding: 0.55rem 1.1rem !important;
+        padding: 0.55rem 1.2rem !important;
         font-weight: 500 !important;
-        border: 1px solid rgba(230, 220, 255, 0.55) !important;
-        background: rgba(12, 6, 26, 0.75) !important;
-        color: #f3eaff !important;
+        background: rgba(10, 6, 26, 0.75) !important;
+        border: 1px solid rgba(240, 225, 255, 0.6) !important;
+        color: #f5ebff !important;
+        box-shadow: none !important;
     }
     .ghost-btn button:hover {
-        background: rgba(35, 20, 70, 0.95) !important;
-        border-color: rgba(245, 235, 255, 0.9) !important;
+        background: rgba(40, 22, 70, 0.95) !important;
+        border-color: rgba(255, 240, 255, 0.9) !important;
     }
-    .small-btn button {
-        border-radius: 999px !important;
-        padding: 0.4rem 0.9rem !important;
+    .small button {
+        padding: 0.4rem 1rem !important;
         font-size: 0.85rem !important;
     }
-    /* Progress bar daha ince ve neon */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #c77dff, #f2e9ff) !important;
+
+    /* Neon gradient kart: dış çerçeve + iç siyah kart */
+    .neon-wrapper {
+        background: linear-gradient(135deg, #ff8fd1, #c77dff, #ff9ad5);
+        padding: 2px;
+        border-radius: 26px;
+        box-shadow:
+            0 0 30px rgba(255, 144, 222, 0.9),
+            0 0 70px rgba(146, 76, 230, 0.95);
+        animation: glowPulse 4s ease-in-out infinite alternate;
     }
+    .neon-card {
+        background: radial-gradient(circle at top, rgba(18, 8, 40, 0.98), rgba(4, 0, 12, 0.98));
+        border-radius: 24px;
+        padding: 1.6rem 1.8rem;
+    }
+    @keyframes glowPulse {
+        0% { box-shadow: 0 0 18px rgba(255, 144, 222, 0.7); }
+        100% { box-shadow: 0 0 40px rgba(186, 120, 255, 1); }
+    }
+
+    .pill {
+        display: inline-block;
+        padding: 0.2rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(17, 11, 32, 0.9);
+        border: 1px solid rgba(240, 220, 255, 0.6);
+        color: #f6ebff;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-right: 0.4rem;
+    }
+    .pill-strong {
+        background: linear-gradient(135deg, #ffe7ff, #ff8fd1);
+        color: #280624;
+        border: none;
+    }
+    .card-text {
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-top: 0.9rem;
+    }
+    .card-note {
+        color: #ceb7ff;
+        font-size: 0.88rem;
+        margin-top: 0.7rem;
+    }
+
+    /* Progress bar neon */
+    .stProgress > div > div {
+        background: linear-gradient(90deg, #ff8fd1, #c77dff) !important;
+    }
+
+    /* Küçük alt yazı */
     .footer-text {
         font-size: 0.8rem;
-        color: #c9baff;
+        color: #cbb8ff;
         text-align: center;
-        margin-top: 0.6rem;
+        margin-top: 1rem;
     }
     </style>
     """,
@@ -113,7 +157,7 @@ st.markdown(
 # -------------------- OYUN VERİLERİ (80 KART) -------------------- #
 
 CARDS = [
-    # -------- Yakınlık 1–20 --------
+    # Yakınlık 1–20
     {"mode": "Genel", "category": "Yakınlık", "type": "soru",
      "text": "Partnerinle ilk tanıştığınız dönemden, bugün hâlâ aklında en çok kalan küçük bir ayrıntıyı anlat."},
     {"mode": "Genel", "category": "Yakınlık", "type": "soru",
@@ -155,7 +199,7 @@ CARDS = [
     {"mode": "Genel", "category": "Yakınlık", "type": "görev",
      "text": "Partnerine, kendini yorgun hissettiğinde ona güvenerek sırtını nasıl bıraktığını tarif et; o da bunu nasıl hissettiğini anlatsın."},
 
-    # -------- Çekim 21–40 --------
+    # Çekim 21–40
     {"mode": "Cesaret", "category": "Çekim", "type": "görev",
      "text": "Dokunmadan, sadece yaklaşarak partnerine bir mesaj gönder. O, mesajın ne olduğunu tahmin etmeye çalışsın."},
     {"mode": "Cesaret", "category": "Çekim", "type": "görev",
@@ -197,7 +241,7 @@ CARDS = [
     {"mode": "Genel", "category": "Çekim", "type": "oyun",
      "text": "İkiniz de içinizden partnerinizle ilgili kısa bir hayal kurun; sonra bu hayali yalnızca üç kelimeyle özetleyin."},
 
-    # -------- Gölge 41–60 --------
+    # Gölge 41–60
     {"mode": "İtiraf", "category": "Gölge", "type": "soru",
      "text": "Bu ilişkide, gösterip de aslında daha derininde sakladığın bir duygun var mı? İstersen ucundan biraz anlat."},
     {"mode": "İtiraf", "category": "Gölge", "type": "soru",
@@ -239,7 +283,7 @@ CARDS = [
     {"mode": "İtiraf", "category": "Gölge", "type": "ritüel",
      "text": "Bir dakikalığına karanlık bir köşe hayal edin. Orada birlikte neyi bırakmak, hangi eski korkuyu geride bırakmak isterdiniz? Bunu paylaşın."},
 
-    # -------- Senaryo 61–80 --------
+    # Senaryo 61–80
     {"mode": "Genel", "category": "Senaryo", "type": "oyun",
      "text": "Bu akşam ilişkiniz bir film olsaydı, türü ne olurdu (dram, gizem, romantik, fantastik…)? İkiniz de kendi cevabınızı söyleyin."},
     {"mode": "Genel", "category": "Senaryo", "type": "soru",
@@ -295,7 +339,7 @@ ROULETTE_HINTS = [
     "Bu turu, gelecekte hatırladığınızda sizi gülümsetecek bir sahneye dönüştürmeye çalışın.",
 ]
 
-# -------------------- SESSION STATE -------------------- #
+# -------------------- STATE & YARDIMCI FONKSİYONLAR -------------------- #
 
 if "step" not in st.session_state:
     st.session_state.step = "start"
@@ -313,13 +357,12 @@ defaults = {
     "bond_points": 0,
     "roulette_result": None,
 }
-
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
 
-def reset_game(full=False):
+def reset(full=False):
     st.session_state.deck = []
     st.session_state.turn = 0
     st.session_state.current_card = None
@@ -336,7 +379,7 @@ def reset_game(full=False):
     st.session_state.step = "start"
 
 
-def init_deck_for_mode(mode: str):
+def init_deck(mode: str):
     if mode == "Karışık":
         st.session_state.deck = random.sample(CARDS, len(CARDS))
     else:
@@ -348,7 +391,7 @@ def init_deck_for_mode(mode: str):
 
 def draw_card():
     if not st.session_state.deck:
-        init_deck_for_mode(st.session_state.mode)
+        init_deck(st.session_state.mode)
     st.session_state.current_card = st.session_state.deck.pop()
 
 
@@ -357,7 +400,7 @@ def next_turn():
         st.session_state.turn = (st.session_state.turn + 1) % len(st.session_state.players)
 
 
-def increment_bond(by: int = 1):
+def add_bond(by=1):
     st.session_state.bond_points = min(MAX_BOND, st.session_state.bond_points + by)
 
 
@@ -369,47 +412,39 @@ def check_winner():
 
 
 def header():
-    st.markdown(
-        "<h1 class='center-text'>NOX: Gizli Bağ</h1>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        "<p class='subtitle center-text'>mor sisin içinde, sadece ikinizin bildiği bir oyun</p>",
-        unsafe_allow_html=True,
-    )
+    st.markdown("NOX: Gizli Bağ")
+    st.markdown("<p class='subtitle'>mor sisin içinde, sadece ikinizin bildiği bir oyun</p>", unsafe_allow_html=True)
 
 
-def top_status():
+def status_bar():
     if not st.session_state.players:
         return
-    current = st.session_state.players[st.session_state.turn] if st.session_state.step in ("game", "card") else None
     mode_label = "Roulette" if st.session_state.mode == "Roulette" else st.session_state.mode
-    st.markdown(
-        "<div style='text-align:center; margin-bottom:0.5rem;'>"
-        f"<span class='pill-soft'>Mod: {mode_label}</span>"
-        + (f"<span class='pill-soft'>Sıra: {current}</span>" if current else "")
-        + "</div>",
-        unsafe_allow_html=True,
+    current = (
+        st.session_state.players[st.session_state.turn]
+        if st.session_state.step in ("game", "card")
+        else None
     )
+    pills = f"<span class='pill pill-strong'>{mode_label}</span>"
+    if current:
+        pills += f"<span class='pill'>Sıra: {current}</span>"
+    st.markdown(f"<div style='text-align:center; margin-bottom:0.6rem;'>{pills}</div>", unsafe_allow_html=True)
 
 
-def stats_bar():
+def stats():
     if not st.session_state.players:
         return
     st.markdown("### Skor & Bağ")
-    cols = st.columns([2, 2, 3])
-    with cols[0]:
+    c1, c2 = st.columns([2, 3])
+    with c1:
         for p, s in st.session_state.scores.items():
             st.write(f"**{p}**: {s} puan")
-    with cols[1]:
-        st.write(f"Bağ puanı: **{st.session_state.bond_points} / {MAX_BOND}**")
-    with cols[2]:
-        bond_ratio = st.session_state.bond_points / MAX_BOND if MAX_BOND > 0 else 0
-        st.progress(min(1.0, bond_ratio))
-        st.caption("Her kart, sisin içinde sizi biraz daha yaklaştırır.")
+    with c2:
+        ratio = st.session_state.bond_points / MAX_BOND if MAX_BOND else 0
+        st.progress(min(1.0, ratio))
+        st.caption(f"Bağ puanı: {st.session_state.bond_points} / {MAX_BOND}")
 
-
-# -------------------- ARAYÜZ -------------------- #
+# -------------------- EKRANLAR -------------------- #
 
 header()
 
@@ -417,37 +452,29 @@ header()
 if st.session_state.step == "start":
     st.markdown("### Oyuncular ve Mod")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        p1 = st.text_input("1. Oyuncu", value=st.session_state.player1)
-    with col2:
-        p2 = st.text_input("2. Oyuncu", value=st.session_state.player2)
+    c1, c2 = st.columns(2)
+    with c1:
+        p1 = st.text_input("Oyuncu", value=st.session_state.player1)
+    with c2:
+        p2 = st.text_input("Oyuncu ", value=st.session_state.player2)
 
     st.markdown("### Oyun Modu")
-
     mode_options = ["Karışık", "Cesaret", "İtiraf", "Gizli Kart", "Roulette (Türbülans Çarkı)"]
-    current_mode_label = "Roulette (Türbülans Çarkı)" if st.session_state.mode == "Roulette" else st.session_state.mode
-    mode_label = st.selectbox(
-        "Bu gece oyunun havası:",
-        mode_options,
-        index=mode_options.index(current_mode_label),
-    )
+    current_label = "Roulette (Türbülans Çarkı)" if st.session_state.mode == "Roulette" else st.session_state.mode
+    mode_label = st.selectbox("Bu gece oyunun havası:", mode_options, index=mode_options.index(current_label))
 
     st.markdown(
-        "<p class='subtitle'>"
+        "<div class='subtitle' style='text-align:left;'>"
         "• <b>Karışık:</b> Tüm katmanlardan kartlar<br>"
         "• <b>Cesaret:</b> Çekimi öne çıkaran cesur görevler<br>"
         "• <b>İtiraf:</b> İç dünyayı açan derin sorular<br>"
-        "• <b>Gizli Kart:</b> Sadece birinizin görebildiği sır kartları<br>"
+        "• <b>Gizli Kart:</b> Sadece birinizin gördüğü sır kartları<br>"
         "• <b>Roulette:</b> Türbülans Çarkı; kontrol, seviye ve eylem sürpriz"
-        "</p>",
+        "</div>",
         unsafe_allow_html=True,
     )
 
-    st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
     start = st.button("Oyuna Başla")
-    st.markdown("</div>", unsafe_allow_html=True)
-
     if start:
         if not p1.strip() or not p2.strip():
             st.warning("İki oyuncu adı da dolu olmalı.")
@@ -466,7 +493,7 @@ if st.session_state.step == "start":
                 st.session_state.step = "roulette"
             else:
                 st.session_state.mode = mode_label
-                init_deck_for_mode(st.session_state.mode)
+                init_deck(st.session_state.mode)
                 st.session_state.step = "game"
 
 # Kart modları
@@ -474,49 +501,45 @@ if st.session_state.step in ("game", "card") and st.session_state.mode != "Roule
     if not st.session_state.players:
         st.info("Önce oyuncu ve mod seçmelisiniz.")
     else:
-        top_status()
+        status_bar()
 
         if st.session_state.current_card is None and st.session_state.step == "game":
             st.markdown("### Kart Çek")
             st.markdown(
-                "<p class='subtitle'>Kartı gördükten sonra nasıl yaşanacağını siz belirleyeceksiniz. "
-                "Oyun sadece atmosfere bir cümle ekler.</p>",
+                "<p class='subtitle'>Kart açıldığında, detayları siz dolduracaksınız. NOX sadece sahnenin giriş cümlesini fısıldar.</p>",
                 unsafe_allow_html=True,
             )
-            st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
-            draw = st.button("Kart Çek", key="draw")
-            st.markdown("</div>", unsafe_allow_html=True)
-            if draw:
+            if st.button("Kart Çek"):
                 draw_card()
-                increment_bond(1)
+                add_bond(1)
                 st.session_state.step = "card"
 
         if st.session_state.current_card is not None and st.session_state.step == "card":
             card = st.session_state.current_card
             st.markdown(
                 f"""
-                <div class="glass-card">
+                <div class="neon-wrapper">
+                  <div class="neon-card">
                     <div>
-                        <span class="pill">{card['category']}</span>
-                        <span class="pill-soft">{card['type'].capitalize()}</span>
+                      <span class="pill pill-strong">{card['category']}</span>
+                      <span class="pill">{card['type'].capitalize()}</span>
                     </div>
-                    <h3 style="margin-top:0.8rem;">Kart</h3>
-                    <p style="font-size:1rem; line-height:1.5;">{card['text']}</p>
-                    <p class="subtitle" style="margin-top:0.6rem;">
-                        Detayı siz doldurun; hızınız, sınırlarınız ve ritminiz sadece ikinize ait.
+                    <h3 style="margin-top:1rem;">Kart</h3>
+                    <p class="card-text">{card['text']}</p>
+                    <p class="card-note">
+                      Detayı, hızı ve sınırı siz belirleyin; oyun sadece çerçeveyi çizer.
                     </p>
+                  </div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
 
             st.markdown("")
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
-                done = st.button("Görev / Soru Yaşandı (+1)", key="done")
-                st.markdown("</div>", unsafe_allow_html=True)
-            with c2:
+            b1, b2 = st.columns(2)
+            with b1:
+                done = st.button("Görev / Soru Yaşandı (+1)")
+            with b2:
                 st.markdown("<div class='ghost-btn'>", unsafe_allow_html=True)
                 skip = st.button("Bu Turu Atla", key="skip")
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -525,7 +548,7 @@ if st.session_state.step in ("game", "card") and st.session_state.mode != "Roule
                 current_player = st.session_state.players[st.session_state.turn]
                 if done:
                     st.session_state.scores[current_player] += 1
-                    increment_bond(1)
+                    add_bond(1)
                 winner = check_winner()
                 if winner:
                     st.session_state.winner = winner
@@ -535,46 +558,43 @@ if st.session_state.step in ("game", "card") and st.session_state.mode != "Roule
                     next_turn()
                     st.session_state.step = "game"
 
-        stats_bar()
+        stats()
         st.markdown("---")
-        st.markdown("<div class='ghost-btn small-btn'>", unsafe_allow_html=True)
-        back = st.button("Oyuncu / Mod Ayarlarına Dön", key="back_from_game")
+        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
+        back = st.button("Oyuncu / Mod Ayarlarına Dön", key="back_game")
         st.markdown("</div>", unsafe_allow_html=True)
         if back:
             st.session_state.step = "start"
 
 # Roulette
 if st.session_state.step == "roulette" and st.session_state.mode == "Roulette":
-    top_status()
+    status_bar()
     st.markdown("### Türbülans Çarkı")
     st.markdown(
-        "<p class='subtitle'>Kontrolü, yoğunluğu ve eylemi çark belirlesin; "
-        "siz sahnenin geri kalanını doldurun.</p>",
+        "<p class='subtitle'>Kontrolü, yoğunluğu ve eylemi çark belirler; gerisini sisin içinde siz tamamlarsınız.</p>",
         unsafe_allow_html=True,
     )
 
-    st.markdown("<div class='primary-btn'>", unsafe_allow_html=True)
-    spin = st.button("Çarkı Çevir", key="spin")
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    if spin:
+    if st.button("Çarkı Çevir"):
         controller = random.choice(ROULETTE_CONTROLLERS)
         level = random.choice(ROULETTE_LEVELS)
         action = random.choice(ROULETTE_ACTIONS)
         hint = random.choice(ROULETTE_HINTS)
         st.session_state.roulette_result = (controller, level, action, hint)
-        increment_bond(1)
+        add_bond(1)
 
     if st.session_state.roulette_result:
         controller, level, action, hint = st.session_state.roulette_result
         st.markdown(
             f"""
-            <div class="glass-card">
+            <div class="neon-wrapper">
+              <div class="neon-card">
                 <h3>Bu Turun Enerjisi</h3>
-                <p><span class="pill">Kontrol</span> <b>{controller}</b></p>
-                <p><span class="pill">Seviye</span> <b>{level}</b></p>
-                <p><span class="pill">Eylem</span> <b>{action}</b></p>
-                <p class="subtitle" style="margin-top:0.6rem;">{hint}</p>
+                <p><span class="pill pill-strong">Kontrol</span> {controller}</p>
+                <p><span class="pill">Seviye</span> {level}</p>
+                <p><span class="pill">Eylem</span> {action}</p>
+                <p class="card-note">{hint}</p>
+              </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -584,48 +604,45 @@ if st.session_state.step == "roulette" and st.session_state.mode == "Roulette":
         done = st.button("Bu Turu Yaşadık (+Bağ)", key="roulette_done")
         st.markdown("</div>", unsafe_allow_html=True)
         if done:
-            increment_bond(1)
+            add_bond(1)
 
-    stats_bar()
+    stats()
     st.markdown("---")
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("<div class='ghost-btn small-btn'>", unsafe_allow_html=True)
+        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
         to_cards = st.button("Kart Modlarına Geç", key="to_cards")
         st.markdown("</div>", unsafe_allow_html=True)
     with c2:
-        st.markdown("<div class='ghost-btn small-btn'>", unsafe_allow_html=True)
+        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
         back = st.button("Oyuncu / Mod Ayarlarına Dön", key="roulette_back")
         st.markdown("</div>", unsafe_allow_html=True)
     if to_cards:
         st.session_state.mode = "Karışık"
-        init_deck_for_mode("Karışık")
+        init_deck("Karışık")
         st.session_state.step = "game"
     if back:
         st.session_state.step = "start"
 
 # Bitiş
 if st.session_state.step == "end":
-    top_status()
+    status_bar()
     st.markdown("## Tur Tamamlandı")
     if st.session_state.winner:
-        st.success(f"🎉 Bu turun kazananı: {st.session_state.winner}")
+        st.success(f"Bu turun kazananı: {st.session_state.winner}")
     else:
         st.info("Bu turda belirgin bir kazanan yok; ama asıl kazanç aranızdaki bağ oldu.")
-
-    stats_bar()
+    stats()
     st.markdown("---")
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("<div class='primary-btn small-btn'>", unsafe_allow_html=True)
         again = st.button("Aynı Modla Yeni Tur", key="again")
-        st.markdown("</div>", unsafe_allow_html=True)
     with c2:
-        st.markdown("<div class='ghost-btn small-btn'>", unsafe_allow_html=True)
+        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
         back = st.button("Oyuncu / Mod Ayarlarına Dön", key="end_back")
         st.markdown("</div>", unsafe_allow_html=True)
     if again:
-        init_deck_for_mode(st.session_state.mode if st.session_state.mode != "Roulette" else "Karışık")
+        init_deck(st.session_state.mode if st.session_state.mode != "Roulette" else "Karışık")
         st.session_state.scores = {p: 0 for p in st.session_state.players}
         st.session_state.turn = 0
         st.session_state.current_card = None
@@ -635,4 +652,7 @@ if st.session_state.step == "end":
     if back:
         st.session_state.step = "start"
 
-st.markdown("<p class='footer-text'>Bu oyun, detayları sizin doldurmanız için tasarlandı; NOX sadece sisin içindeki çerçeveyi çiziyor.</p>", unsafe_allow_html=True)
+st.markdown(
+    "<p class='footer-text'>NOX, ayrıntıları size bırakır; kartlar sadece sisin içinden gelen küçük işaretlerdir.</p>",
+    unsafe_allow_html=True,
+)
