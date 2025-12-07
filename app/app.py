@@ -1,196 +1,187 @@
 import streamlit as st
 import random
 import time
+from itertools import permutations
 
 # --- 1. AYARLAR VE SABİTLER ---
 
-# Kelimeler (Türkçe anlamları) ve karşılık gelen HEX kodları
-COLORS = {
-    "KIRMIZI": "#FF0000",
-    "MAVİ": "#0000FF",
-    "YEŞİL": "#00AA00",
-    "SARI": "#CCCC00",
-    "MOR": "#800080",
-    "TURUNCU": "#FF8C00"
-}
-COLOR_NAMES = list(COLORS.keys())
-TOTAL_TIME = 60 # Saniye
+CODE_LENGTH = 4   # Şifre hanesi
+MAX_ATTEMPTS = 10 # Maksimum deneme hakkı
 
-# --- 2. CSS ve Görsel Ayarlar ---
+# --- 2. ŞİFRE MANTIĞI VE KONTROL FONKSİYONLARI ---
 
-def inject_custom_css():
-    st.markdown("""
-        <style>
-        .stApp {
-            background-color: #1a1a1a;
-            color: #f0f0f0;
-            text-align: center;
-        }
-        h1 {
-            color: #00ffcc;
-            font-size: 3em;
-        }
-        /* Oyundaki merkezi kelime için özel stil */
-        .color-word {
-            font-family: 'Arial Black', sans-serif;
-            font-size: 70px !important;
-            font-weight: 900;
-            text-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-            margin: 50px 0;
-            line-height: 1.2;
-        }
-        /* Buton stili */
-        div.stButton > button {
-            height: 80px;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .stSuccess {
-            background-color: #00AA00;
-            color: white;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+def generate_secret_code():
+    """Benzersiz rakamlardan oluşan gizli şifreyi üretir."""
+    # 0'dan 9'a kadar rakamları karıştır ve ilk CODE_LENGTH kadarını al
+    digits = [str(i) for i in range(10)]
+    random.shuffle(digits)
+    return "".join(digits[:CODE_LENGTH])
 
-# --- 3. OYUN MANTIĞI FONKSİYONLARI ---
+def get_feedback(guess, secret):
+    """Tahmine karşı 'Dahil' ve 'Konum' geri bildirimlerini hesaplar."""
+    
+    # 1. Dahil (Benzersiz rakamlar şifrede var mı?)
+    included = 0
+    for digit in guess:
+        if digit in secret:
+            included += 1
+            
+    # 2. Konum (Hem dahil hem de doğru pozisyonda mı?)
+    position = 0
+    for i in range(CODE_LENGTH):
+        if guess[i] == secret[i]:
+            position += 1
+            
+    return included, position
+
+# --- 3. ARAYÜZ VE DURUM YÖNETİMİ ---
 
 def init_state():
     """Oyun durumunu başlatır/sıfırlar."""
-    if 'game_running' not in st.session_state:
-        st.session_state.game_running = False
-    if 'score' not in st.session_state:
-        st.session_state.score = 0
-    if 'start_time' not in st.session_state:
-        st.session_state.start_time = 0
-    if 'current_word' not in st.session_state:
-        st.session_state.current_word = None
-    if 'current_color' not in st.session_state:
-        st.session_state.current_color = None
-    if 'feedback' not in st.session_state:
-        st.session_state.feedback = ""
-    if 'correct_answer' not in st.session_state:
-        st.session_state.correct_answer = None
+    
+    if 'game_active' not in st.session_state:
+        st.session_state.game_active = False
+    
+    if 'secret_code' not in st.session_state:
+        st.session_state.secret_code = generate_secret_code()
+        
+    if 'attempts_left' not in st.session_state:
+        st.session_state.attempts_left = MAX_ATTEMPTS
+        
+    if 'history' not in st.session_state:
+        st.session_state.history = [] # [(tahmin, dahil, konum), ...]
+        
+    if 'message' not in st.session_state:
+        st.session_state.message = "Şifre Çözücü Hazır. İlk tahmini girin."
 
-def generate_puzzle():
-    """Yeni bir kelime ve renk kombinasyonu oluşturur."""
-    
-    # 1. Kelimeyi rastgele seç (MAVİ, KIRMIZI, vb.)
-    word = random.choice(COLOR_NAMES)
-    
-    # 2. Kelimenin gösterileceği rengi rastgele seç
-    displayed_color_name = random.choice(COLOR_NAMES)
-    hex_code = COLORS[displayed_color_name]
-    
-    # 3. Doğru cevabı belirle
-    # Eşleşiyor: Kelimenin ANLAMI ile RENGİ aynı ise (örn: Yazı 'MAVİ', Renk MAVİ)
-    is_match = (word == displayed_color_name)
-    
-    st.session_state.current_word = word
-    st.session_state.current_color = hex_code
-    st.session_state.correct_answer = "match" if is_match else "no_match"
-    st.session_state.feedback = ""
+def start_game():
+    """Yeni oyunu başlatır."""
+    st.session_state.secret_code = generate_secret_code()
+    st.session_state.attempts_left = MAX_ATTEMPTS
+    st.session_state.history = []
+    st.session_state.game_active = True
+    st.session_state.message = "Yeni Şifre Oluşturuldu. Başlayın."
     st.rerun()
 
-def handle_answer(user_answer):
-    """Kullanıcının cevabını kontrol eder ve skoru günceller."""
+def handle_guess():
+    """Kullanıcının tahminini işler."""
     
-    # Oyuncunun cevabı doğru mu?
-    is_correct = (user_answer == st.session_state.correct_answer)
+    guess = st.session_state.guess_input
     
-    if is_correct:
-        st.session_state.score += 1
-        st.session_state.feedback = "✅ DOĞRU!"
+    # Giriş Kontrolleri
+    if not guess or len(guess) != CODE_LENGTH or not guess.isdigit():
+        st.session_state.message = f"Hata: Lütfen {CODE_LENGTH} haneli sayısal bir giriş yapın."
+        return
+
+    if len(set(guess)) != CODE_LENGTH:
+        st.session_state.message = "Hata: Rakamlar tekrarlanamaz."
+        return
+
+    # Geri Bildirimi Hesapla
+    secret = st.session_state.secret_code
+    included, position = get_feedback(guess, secret)
+    
+    # Tarihçeye Ekle
+    st.session_state.history.append((guess, included, position))
+    st.session_state.attempts_left -= 1
+    
+    # Kazanma Durumu
+    if position == CODE_LENGTH:
+        st.session_state.game_active = False
+        st.session_state.message = f"✅ ŞİFRE ÇÖZÜLDÜ! ({secret}) {MAX_ATTEMPTS - st.session_state.attempts_left} denemede başarıldı."
+        st.balloons()
+    elif st.session_state.attempts_left == 0:
+        st.session_state.game_active = False
+        st.session_state.message = f"❌ DENEME HAKKI BİTTİ. Şifre: {secret}"
     else:
-        st.session_state.feedback = "❌ YANLIŞ!"
-        # Yanlış cevapta puan düşürmeyerek daha motive edici yapalım.
+        st.session_state.message = "Geri bildirimi analiz edin ve yeni bir tahmin yapın."
     
-    # Yeni bulmaca oluştur
-    generate_puzzle()
+    # Girişi temizle ve yeniden çiz
+    st.session_state.guess_input = ""
+    st.rerun()
 
+# --- 4. ANA ARAYÜZ FONKSİYONU ---
 
-# --- 4. ANA ARAYÜZ ---
+def main_app():
+    
+    # CSS ve Başlık
+    st.set_page_config(page_title="Sıralı Şifre Çözücü", layout="centered")
+    st.markdown("<h1>🔐 Sıralı Şifre Çözücü (Sequential Decryption)</h1>", unsafe_allow_html=True)
+    st.markdown("### Kısıtlı Optimizasyon ve Tümdengelim Oyunu")
+    st.markdown("---")
 
-def main_game():
-    inject_custom_css()
     init_state()
 
-    st.markdown("<h1>🧠 RENK FIRTINASI</h1>", unsafe_allow_html=True)
-    st.markdown("<h2>Hızlı karar ver, beynini test et!</h2>", unsafe_allow_html=True)
-
-    if not st.session_state.game_running:
-        st.markdown("""
-        <div style="background-color: #222; padding: 20px; border-radius: 10px; margin-top: 30px;">
-            <h3>OYUN KURALLARI</h3>
-            <p>Ekranda beliren kelimeyi (örn: SARI) ve onun rengini (örn: Kırmızı) inceleyin.</p>
+    # Oyun Dışı Durum (Başlangıç veya Son)
+    if not st.session_state.game_active:
+        
+        st.markdown(f"""
+        <div style='background-color: #333; padding: 20px; border-radius: 10px;'>
+            <h4>ANALİZ PROTOKOLÜ</h4>
+            <p>Gizli {CODE_LENGTH} haneli (rakamları benzersiz) şifreyi en fazla {MAX_ATTEMPTS} denemede çözmelisiniz.</p>
+            <p><b>Geri Bildirim Anahtarı:</b></p>
             <ul>
-                <li><span style="color:#00ffcc; font-weight:bold;">Eşleşiyor</span> butonuna, kelimenin anlamı ile rengi AYNI ise basın.</li>
-                <li><span style="color:#ff5555; font-weight:bold;">Eşleşmiyor</span> butonuna, kelimenin anlamı ile rengi FARKLI ise basın.</li>
+                <li><b>Dahil (Rakam):</b> Tahmininizdeki kaç rakam şifrede mevcuttur.</li>
+                <li><b>Konum (Rakam):</b> Dahil olan rakamlardan kaç tanesi doğru yerdedir.</li>
             </ul>
-            <p style="font-size: 1.2em; font-weight: bold;">Amaç: 60 saniyede en yüksek skoru yapmak!</p>
+            <p style='color: #00ffcc;'>{st.session_state.message}</p>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("OYUNA BAŞLA (60 Saniye) 🚀", key="start_btn", type="primary", use_container_width=True):
-            st.session_state.game_running = True
-            st.session_state.score = 0
-            st.session_state.start_time = time.time()
-            generate_puzzle() # İlk bulmacayı oluştur
-            st.rerun()
-        return
-
-    # --- OYUN ÇALIŞIYOR ---
-    
-    elapsed_time = time.time() - st.session_state.start_time
-    time_left = max(0, TOTAL_TIME - int(elapsed_time))
-
-    if time_left == 0:
-        st.session_state.game_running = False
-        st.markdown(f"<h2>ZAMAN DOLDU! ⏱️</h2>")
-        st.markdown(f"<h1>FİNAL SKORUN: {st.session_state.score}</h1>", unsafe_allow_html=True)
-        if st.button("TEKRAR OYNA"):
-            init_state() # Durumu sıfırla
-            st.rerun()
-        return
+        if st.button("🔴 YENİ ŞİFRE OLUŞTUR / BAŞLA", type="primary", use_container_width=True):
+            start_game()
         
-    # --- Skor ve Süre Gösterimi ---
+        # Eğer oyun bitmişse, sonuç mesajını göster
+        if st.session_state.history and 'ŞİFRE ÇÖZÜLDÜ' in st.session_state.message:
+            st.success(st.session_state.message)
+        elif st.session_state.history and 'DENEME HAKKI BİTTİ' in st.session_state.message:
+            st.error(st.session_state.message)
+        
+        return
+
+    # --- OYUN İÇİ DURUM ---
     
-    col1, col2, col3 = st.columns([1, 1, 1])
-    col1.metric("SKOR", st.session_state.score)
-    col2.metric("SÜRE", f"{time_left} s", delta_color="off")
-    col3.metric("GERİ BİLDİRİM", st.session_state.feedback if st.session_state.feedback else "Hazır Ol")
-    
+    st.markdown(f"**Kalan Deneme Hakkı:** `{st.session_state.attempts_left} / {MAX_ATTEMPTS}`")
+    st.info(st.session_state.message)
+
+    # Tahmin Girişi
+    with st.form(key='guess_form', clear_on_submit=True):
+        st.text_input(
+            f"Tahmininizi Girin ({CODE_LENGTH} Benzersiz Rakam):",
+            max_chars=CODE_LENGTH,
+            key='guess_input'
+        )
+        st.form_submit_button("Tahmin Et ➡️", on_click=handle_guess, type="secondary")
+
     st.markdown("---")
     
-    # --- Kelime Gösterimi ---
+    # Tarihçe ve Geri Bildirim Tablosu
+    st.subheader("İşlem Kaydı (Feedback History)")
     
-    if st.session_state.current_word:
-        # Kelimeyi ve rengi merkezde göster
-        st.markdown(
-            f"<p class='color-word' style='color: {st.session_state.current_color};'>{st.session_state.current_word}</p>",
-            unsafe_allow_html=True
+    if st.session_state.history:
+        
+        # Tabloyu ters çevirerek en yeni tahmini en üste getir
+        history_reversed = st.session_state.history[::-1] 
+        
+        # Veri yapısını DataFrame'e uygun hale getir
+        data = [{"Deneme": MAX_ATTEMPTS - st.session_state.attempts_left - i, 
+                 "Tahmin": h[0], 
+                 "Dahil": h[1], 
+                 "Konum": h[2]} for i, h in enumerate(history_reversed)]
+        
+        st.dataframe(
+            data,
+            hide_index=True,
+            column_order=("Deneme", "Tahmin", "Dahil", "Konum"),
+            column_config={
+                "Deneme": st.column_config.NumberColumn(format="%d"),
+                "Tahmin": st.column_config.TextColumn(),
+                "Dahil": st.column_config.NumberColumn("✅ Dahil", help="Doğru rakam sayısı"),
+                "Konum": st.column_config.NumberColumn("📍 Konum", help="Doğru konumdaki rakam sayısı")
+            }
         )
-    
-    # --- Cevap Butonları ---
-    
-    btn_col1, btn_col2 = st.columns(2)
-
-    with btn_col1:
-        # Kırmızı butonu yanlış/olumsuz durumlar için kullanalım
-        if st.button("EŞLEŞMİYOR ❌", key="no_match_btn", type="secondary", use_container_width=True):
-            handle_answer("no_match")
-            
-    with btn_col2:
-        # Yeşil butonu doğru/olumlu durumlar için kullanalım
-        if st.button("EŞLEŞİYOR ✅", key="match_btn", type="primary", use_container_width=True):
-            handle_answer("match")
-    
-    # Streamlit'i sürekli güncel tutmak için
-    if st.session_state.game_running:
-        time.sleep(0.1)
-        st.rerun()
-
+    else:
+        st.caption("Henüz bir işlem yapılmadı.")
 
 if __name__ == "__main__":
-    main_game()
+    main_app()
