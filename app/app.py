@@ -1,658 +1,895 @@
-import streamlit as st
-import random
+import 'dart:math';
+import 'package:flutter/material.dart';
 
-# -------------------- GENEL AYARLAR -------------------- #
-
-st.set_page_config(page_title="NOX: Gizli Bağ", page_icon="🖤", layout="centered")
-
-# MOR SİS + NEON GRADIENT TEMA
-st.markdown(
-    """
-    <style>
-    /* Arka plan ve genel tipografi */
-    .stApp {
-        background: radial-gradient(circle at top, #3a0f55 0, #120018 45%, #020006 100%) !important;
-        color: #fdf2ff;
-        font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    .block-container {
-        max-width: 820px;
-        padding-top: 2.5rem !important;
-        padding-bottom: 2.5rem !important;
-    }
-    h1, h2, h3, h4 {
-        color: #fdf7ff !important;
-        letter-spacing: 0.06em;
-    }
-    h1 {
-        font-size: 2.2rem !important;
-        text-transform: uppercase;
-        text-align: center;
-    }
-    .subtitle {
-        color: #e1ceff;
-        font-size: 0.95rem;
-        text-align: center;
-        margin-top: -0.4rem;
-        margin-bottom: 1.4rem;
-    }
-
-    /* Form elemanları (input, select) – cam & oval */
-    .stTextInput input, .stSelectbox select {
-        background: rgba(8, 4, 20, 0.9) !important;
-        color: #fdf4ff !important;
-        border-radius: 999px !important;
-        border: 1px solid rgba(243, 220, 255, 0.65) !important;
-        padding: 0.55rem 0.9rem !important;
-    }
-    .stTextInput input:focus, .stSelectbox select:focus {
-        border-color: rgba(255, 183, 255, 0.95) !important;
-        box-shadow: 0 0 0 1px rgba(255, 183, 255, 0.85) !important;
-    }
-
-    /* Neon butonlar */
-    div.stButton > button {
-        border-radius: 999px !important;
-        border: none !important;
-        padding: 0.6rem 1.3rem !important;
-        font-weight: 600 !important;
-        cursor: pointer;
-        background: radial-gradient(circle at top left,
-            #ffe9ff 0, #ff8fd1 35%, #c77dff 65%, #7c3aed 100%) !important;
-        color: #14031f !important;
-        box-shadow:
-            0 0 18px rgba(205, 140, 255, 0.75),
-            0 0 40px rgba(148, 87, 235, 0.9) !important;
-    }
-    div.stButton > button:hover {
-        filter: brightness(1.06);
-        transform: translateY(-1px);
-        box-shadow:
-            0 0 22px rgba(235, 170, 255, 0.9),
-            0 0 55px rgba(170, 100, 255, 1) !important;
-    }
-    .ghost-btn button {
-        border-radius: 999px !important;
-        padding: 0.55rem 1.2rem !important;
-        font-weight: 500 !important;
-        background: rgba(10, 6, 26, 0.75) !important;
-        border: 1px solid rgba(240, 225, 255, 0.6) !important;
-        color: #f5ebff !important;
-        box-shadow: none !important;
-    }
-    .ghost-btn button:hover {
-        background: rgba(40, 22, 70, 0.95) !important;
-        border-color: rgba(255, 240, 255, 0.9) !important;
-    }
-    .small button {
-        padding: 0.4rem 1rem !important;
-        font-size: 0.85rem !important;
-    }
-
-    /* Neon gradient kart: dış çerçeve + iç siyah kart */
-    .neon-wrapper {
-        background: linear-gradient(135deg, #ff8fd1, #c77dff, #ff9ad5);
-        padding: 2px;
-        border-radius: 26px;
-        box-shadow:
-            0 0 30px rgba(255, 144, 222, 0.9),
-            0 0 70px rgba(146, 76, 230, 0.95);
-        animation: glowPulse 4s ease-in-out infinite alternate;
-    }
-    .neon-card {
-        background: radial-gradient(circle at top, rgba(18, 8, 40, 0.98), rgba(4, 0, 12, 0.98));
-        border-radius: 24px;
-        padding: 1.6rem 1.8rem;
-    }
-    @keyframes glowPulse {
-        0% { box-shadow: 0 0 18px rgba(255, 144, 222, 0.7); }
-        100% { box-shadow: 0 0 40px rgba(186, 120, 255, 1); }
-    }
-
-    .pill {
-        display: inline-block;
-        padding: 0.2rem 0.9rem;
-        border-radius: 999px;
-        background: rgba(17, 11, 32, 0.9);
-        border: 1px solid rgba(240, 220, 255, 0.6);
-        color: #f6ebff;
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin-right: 0.4rem;
-    }
-    .pill-strong {
-        background: linear-gradient(135deg, #ffe7ff, #ff8fd1);
-        color: #280624;
-        border: none;
-    }
-    .card-text {
-        font-size: 1rem;
-        line-height: 1.6;
-        margin-top: 0.9rem;
-    }
-    .card-note {
-        color: #ceb7ff;
-        font-size: 0.88rem;
-        margin-top: 0.7rem;
-    }
-
-    /* Progress bar neon */
-    .stProgress > div > div {
-        background: linear-gradient(90deg, #ff8fd1, #c77dff) !important;
-    }
-
-    /* Küçük alt yazı */
-    .footer-text {
-        font-size: 0.8rem;
-        color: #cbb8ff;
-        text-align: center;
-        margin-top: 1rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# -------------------- OYUN VERİLERİ (80 KART) -------------------- #
-
-CARDS = [
-    # Yakınlık 1–20
-    {"mode": "Genel", "category": "Yakınlık", "type": "soru",
-     "text": "Partnerinle ilk tanıştığınız dönemden, bugün hâlâ aklında en çok kalan küçük bir ayrıntıyı anlat."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "soru",
-     "text": "Onun yanında kendini en çok 'evde' hissettiğin an hangisiydi? O ana dair tek bir sahneyi tarif et."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "görev",
-     "text": "Karşılıklı oturun ve sırayla birbirinizde en çok takdir ettiğiniz üç özelliği söyleyin."},
-    {"mode": "İtiraf", "category": "Yakınlık", "type": "soru",
-     "text": "Bu ilişkide seni en çok yumuşatan, gardını indiren cümle ne oldu? Hâlâ etkisini hissediyor musun?"},
-    {"mode": "İtiraf", "category": "Yakınlık", "type": "görev",
-     "text": "Partnerine karşı zihninde taşıdığın ama yüksek sesle hiç söylemediğin bir teşekkürü paylaş."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "ritüel",
-     "text": "Üç nefes boyunca aynı ritimde nefes alın. Nefes alırken içinden 'biz', verirken 'birlikte' kelimesini düşün."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "soru",
-     "text": "Onun yanında kendini kaç yaşında hissediyorsun? Neden o yaş? Hissettiğin versiyonunu tarif et."},
-    {"mode": "İtiraf", "category": "Yakınlık", "type": "soru",
-     "text": "Onu kaybetme korkunu hiç düşündün mü? Bu düşünce aklına geldiğinde içinden geçen ilk duygu neydi?"},
-    {"mode": "Genel", "category": "Yakınlık", "type": "görev",
-     "text": "Birbirinizin ellerine bakın ve ellerinizin bugüne kadar birlikte neler taşıdığını, nelerden geçtiğini hayal edin; sonra bunu kısa cümlelerle paylaşın."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "soru",
-     "text": "Birlikte geçirdiğiniz zamanlardan, 'keşke oraya geri dönsek' dediğin tek bir günü seç; o günü üç kelimeyle özetle."},
-    {"mode": "İtiraf", "category": "Yakınlık", "type": "soru",
-     "text": "Onun yanında kendinle ilgili yumuşattığın bir sert tarafın var mı? Bu ilişkide hangi köşen yuvarlandı?"},
-    {"mode": "Genel", "category": "Yakınlık", "type": "görev",
-     "text": "Birbirinize, bu ilişki sayesinde kendinizde büyüttüğünüz olumlu bir yönü söyleyin."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "soru",
-     "text": "Bu ilişkinin bir rengi olsa, hangi renk olurdu ve neden? O rengi hissettiren bir anı paylaş."},
-    {"mode": "İtiraf", "category": "Yakınlık", "type": "ritüel",
-     "text": "Gözlerinizi kapatın. İçinizden partneriniz için tek bir cümle kurun ve sonra göz göze bakarak o cümleyi fısıldayın."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "soru",
-     "text": "Onunla tanışmasaydın, bugün hayalindeki hayat nasıl olurdu? Şu anki hayatın hangi kısmı ondan iz taşıyor?"},
-    {"mode": "Genel", "category": "Yakınlık", "type": "görev",
-     "text": "Birbirinize, bu ilişki sayesinde kendinizde büyüttüğünüz olumlu bir yönü söyleyin."},
-    {"mode": "İtiraf", "category": "Yakınlık", "type": "soru",
-     "text": "Onun seni anladığını en net hissettiğin cümle ya da bakış hangisiydi? Bu anı yeniden anlat."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "ritüel",
-     "text": "Bir dakikalığına telefonları tamamen uzaklaştırın. Sadece birbirinize dönüp sessizce bakın ve aklınızdan geçen ilk kelimeyi paylaşın."},
-    {"mode": "İtiraf", "category": "Yakınlık", "type": "soru",
-     "text": "Onunla ilgili 'bunu bilse hoşuna gider' dediğin ama söylemediğin bir düşüncen var mı? Şimdi kısaca paylaş."},
-    {"mode": "Genel", "category": "Yakınlık", "type": "görev",
-     "text": "Partnerine, kendini yorgun hissettiğinde ona güvenerek sırtını nasıl bıraktığını tarif et; o da bunu nasıl hissettiğini anlatsın."},
-
-    # Çekim 21–40
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Dokunmadan, sadece yaklaşarak partnerine bir mesaj gönder. O, mesajın ne olduğunu tahmin etmeye çalışsın."},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Onu en çekici bulduğun hâlini tarif et; bir an, bir bakış, bir ses tonunu seç ve o anı canlandır."},
-    {"mode": "Genel", "category": "Çekim", "type": "soru",
-     "text": "Onun üzerinde seni en çok çeken şey sence: duruşu, bakışı, sesi, kokusu mu? Neden?"},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Partnerini bir süre sadece uzaktan izle ve sonra 'sende en çok şu an hoşuma gidiyor' diyerek tek bir ayrıntıyı söyle."},
-    {"mode": "Genel", "category": "Çekim", "type": "oyun",
-     "text": "İkiniz de, birbirinizde en çekici bulduğunuz davranışı tek kelimeyle yazın; aynı anda söyleyin."},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Partnerine, bugün onu gördüğünde aklından geçen ilk 'keşke'yi söyle (örneğin 'keşke şimdi…' diye başlayan bir cümleyle)."},
-    {"mode": "Genel", "category": "Çekim", "type": "ritüel",
-     "text": "Birbirinize 10 saniye boyunca kesintisiz göz göze bakın. İçinizden geçen ilk hisleri tek kelimeyle paylaşın."},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Onun en çok hangi hali sana 'dayanılmaz' geliyor? Bir sahne kurar gibi anlat."},
-    {"mode": "Genel", "category": "Çekim", "type": "soru",
-     "text": "Onun enerjisini bir hava durumu olarak anlatsan, şu anda nasıl bir hava olurdu? Neden?"},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Yalnızca bakışlarınla, ondan bir şey iste. O, ne istediğini tahmin etmeye çalışsın."},
-    {"mode": "Genel", "category": "Çekim", "type": "soru",
-     "text": "Onu ilk gördüğünde hissettiğin çekim ile şu anki çekim arasında nasıl bir fark var?"},
-    {"mode": "Cesaret", "category": "Çekim", "type": "oyun",
-     "text": "Taş-kağıt-makas oynayın. Kaybeden, kazananın seçtiği küçük ve nazik bir jesti yapmak zorunda."},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Onun sana en çekici gelen tarafını tek bir cümlede özetle ve bunu fısıldayarak söyle."},
-    {"mode": "Genel", "category": "Çekim", "type": "soru",
-     "text": "Onunla dışarıda olduğunuz bir anı düşün: O an seni çekici hissettiren neydi? İkiniz de kendi cevabınızı verin."},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Partnerinin yanına adım adım yaklaş ve her adımda onunla ilgili hoşuna giden bir kelime söyle."},
-    {"mode": "Genel", "category": "Çekim", "type": "ritüel",
-     "text": "Kısa bir süre yan yana sessizce oturun. Sonra 'şu an bedenimde en çok şu hissi taşıyorum' cümlesini tamamlayın."},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Bir film sahnesinde gibi düşünün: Kamera sizi yakından çekiyormuş gibi, birbirinize nasıl bakardınız? Kısaca canlandırın."},
-    {"mode": "Genel", "category": "Çekim", "type": "soru",
-     "text": "Onun 'farkında olmadığı' bir çekiciliği var mı? Varsa bunu şimdi ona anlat."},
-    {"mode": "Cesaret", "category": "Çekim", "type": "görev",
-     "text": "Partnerine, ses tonunu kullanarak bir cümle kur: Kelimeden çok tınısı çekici olsun. Ne dediğin değil, nasıl dediğin önemli."},
-    {"mode": "Genel", "category": "Çekim", "type": "oyun",
-     "text": "İkiniz de içinizden partnerinizle ilgili kısa bir hayal kurun; sonra bu hayali yalnızca üç kelimeyle özetleyin."},
-
-    # Gölge 41–60
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Bu ilişkide, gösterip de aslında daha derininde sakladığın bir duygun var mı? İstersen ucundan biraz anlat."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Onunla ilgili, içinden 'bunu söylesem fazla olur' deyip sustuğun bir düşünceyi daha yumuşak bir dille şimdi paylaş."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "görev",
-     "text": "Bu kartı sadece sen görüyorsun. Partnerin gözlerini kapatsın. İçinden onunla ilgili güçlü bir cümle kur; sonra yalnızca bir kelimesini fısılda."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "görev",
-     "text": "Sadece sen okuyorsun: Partnerine üç kısa dokunuş yap; bunlardan sadece biri gerçek niyetini taşıyor. O hangisi olduğunu tahmin etsin."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Onun yanında tetiklenen, sevmediğin ama dürüstçe kabul ettiğin bir gölge yönün var mı? Bunu yumuşak bir dille anlat."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "ritüel",
-     "text": "Bu kartı ona gösterme. İçinden 'sende en çok korktuğum şey...' diye başlayan bir cümle kur ve sonra sadece ilk kelimeyi söyle."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Onunla beraberken, dışarıya göstermediğin ama için için yoğun yaşadığın bir duygu var mı? Kısaca tarif et."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "görev",
-     "text": "Bu kart yalnızca senin. Partnerine hiçbir şey söylemeden, yüz ifadenle ona bir şey anlatmaya çalış. O ne anladığını söylesin."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Onunla geleceğe dair aklından geçen ama açmaya çekindiğin bir senaryo var mı? Detaya girmeden, sadece duygusunu anlat."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "görev",
-     "text": "Sadece sen görüyorsun: Partnerinin kulağına, ondan gizlediğin bir isteğini 'tam cümle kurmadan' kısa ve belirsiz kelimelerle fısılda."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "İlişkide bazen geri çekilme ihtiyacı hissettiğinde, en çok hangi düşünce aklına geliyor? Bunu onunla paylaş."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "görev",
-     "text": "Bu kartı ona gösterme. Ona bir bakış at ve bu bakışın içinde hem çekim hem tereddüt olsun. O, hangi tarafın ağır bastığını tahmin etsin."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Onunla ilgili 'bazen korkuyorum çünkü...' diye başlayan bir cümleyi tamamla ve paylaş."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Kendi gölgenden, onun korunmasını istediğin bir tarafın var mı? Bunu ona kısa ama dürüstçe anlat."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "ritüel",
-     "text": "Bu kartı sadece sen okuyorsun. Partnerinin elini tut ve içinden geçen gölge duyguyu ona söylemeden, sadece dokunuşunla hissettirmeye çalış."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Geçmiş ilişkilerinden taşıdığın bir korku, bu ilişkide ara sıra kendini hatırlatıyor mu? Eğer evetse, nasıl?"},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "görev",
-     "text": "Bu kartı ona gösterme. Partnerinin hangi bakışının sende en çok gölgeyi uyandırdığını düşün ve o bakışı ondan iste."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "soru",
-     "text": "Onun seni kaybetmekten korktuğunu hissettiğin bir an oldu mu? Bunu ona kendi gözünden anlat."},
-    {"mode": "Gizli Kart", "category": "Gölge", "type": "görev",
-     "text": "Sadece sen görüyorsun: Partnerine, 'şu anda aklımdan geçen şeyi bilseydin...' diye başlayan bir cümleyi içinden kur ve ona sadece bak."},
-    {"mode": "İtiraf", "category": "Gölge", "type": "ritüel",
-     "text": "Bir dakikalığına karanlık bir köşe hayal edin. Orada birlikte neyi bırakmak, hangi eski korkuyu geride bırakmak isterdiniz? Bunu paylaşın."},
-
-    # Senaryo 61–80
-    {"mode": "Genel", "category": "Senaryo", "type": "oyun",
-     "text": "Bu akşam ilişkiniz bir film olsaydı, türü ne olurdu (dram, gizem, romantik, fantastik…)? İkiniz de kendi cevabınızı söyleyin."},
-    {"mode": "Genel", "category": "Senaryo", "type": "soru",
-     "text": "İkinizi anlatan bir film sahnesi hayal et; kamera sizi nasıl çekiyor olurdu? Kısa bir sahne tarif edin."},
-    {"mode": "Gizli Kart", "category": "Senaryo", "type": "görev",
-     "text": "Bu kart sadece senin. Partnerinle beraber olduğun farklı bir şehir hayal et; orada bir akşamı kafanda canlandır ve tek bir cümleyle özetle."},
-    {"mode": "Genel", "category": "Senaryo", "type": "görev",
-     "text": "Birlikte, ileride hatırladığınızda sizi gülümsetecek küçük bir ritüel uydurun ve hemen şimdi deneyin."},
-    {"mode": "Genel", "category": "Senaryo", "type": "soru",
-     "text": "Bir gece yürüyüşünde yan yana olduğunuzu hayal edin. Sessizlikte birbirinize ne söylemek isterdiniz?"},
-    {"mode": "Gizli Kart", "category": "Senaryo", "type": "görev",
-     "text": "Bu kartı ona gösterme. İkinizi gelecekte hayal et; kaç yaşındasınız ve o an ne yapıyorsunuz? Bu sahnenin tek bir ayrıntısını yüksek sesle söyle."},
-    {"mode": "Genel", "category": "Senaryo", "type": "oyun",
-     "text": "İkiniz de birbiriniz için gizli bir 'sahne adı' düşünün ve aynı anda söyleyin. Bu isim, onun hangi halini temsil ediyor?"},
-    {"mode": "Genel", "category": "Senaryo", "type": "soru",
-     "text": "Birlikte yazacağınız bir hikâyenin ilk cümlesi ne olurdu? İkiniz de ayrı ayrı ilk cümlenizi söyleyin."},
-    {"mode": "Gizli Kart", "category": "Senaryo", "type": "ritüel",
-     "text": "Bu kart sadece senin. Partnerinle ilgili aklından geçen bir sahneyi içinden yavaşça say ve ona sadece 'tam da bunu düşünüyordum' de."},
-    {"mode": "Genel", "category": "Senaryo", "type": "görev",
-     "text": "Birlikte, bu oyundan sonra yapmak istediğiniz küçük bir planı konuşun. Bu planın tek bir kelimelik başlığını bulun."},
-    {"mode": "Genel", "category": "Senaryo", "type": "soru",
-     "text": "Onunla 'başka bir evrende' tanışsaydınız, nerede tanışmış olmak isterdiniz? İkiniz de hayalinizdeki yeri söyleyin."},
-    {"mode": "Gizli Kart", "category": "Senaryo", "type": "görev",
-     "text": "Bu kartı ona gösterme. Partnerine bak ve 'şu anda aklımda sana dair bir sahne var' de; o, bu sahneyi tahmin etmeye çalışsın."},
-    {"mode": "Genel", "category": "Senaryo", "type": "oyun",
-     "text": "Biriniz 'gece', diğeriniz 'gündüz' kelimesini seçsin. İkinizi hangi zaman dilimi daha çok anlatıyormuş gibi geliyor? Neden?"},
-    {"mode": "Genel", "category": "Senaryo", "type": "soru",
-     "text": "Bir şarkı çalıyor ve ikiniz yalnızsınız. Bu anın temposunu anlatan tek bir kelime söyleyin: yavaş, derin, hareketli, dalgalı… hangisi?"},
-    {"mode": "Gizli Kart", "category": "Senaryo", "type": "görev",
-     "text": "Bu kart yalnızca senin. Partnerinin kulağına, 'bir gün mutlaka…' diye başlayan bir cümle fısılda; devamını sadece ikiniz bilin."},
-    {"mode": "Genel", "category": "Senaryo", "type": "görev",
-     "text": "Bu oyunu bitirdiğinizde yapacağınız ilk küçük şeyi birlikte seçin ve birbirinize bunu hatırlatacak bir kelime bulun."},
-    {"mode": "Genel", "category": "Senaryo", "type": "soru",
-     "text": "İkinizin ortak geleceğini anlatan bir kitabın adı ne olurdu? İkiniz de farklı bir başlık önerin."},
-    {"mode": "Gizli Kart", "category": "Senaryo", "type": "ritüel",
-     "text": "Bu kartı gizli tut. Partnerinin elini tut ve 'bu hikâyede en sevdiğim yer...' diye içinden bir cümle kur; sonra sadece ona bak."},
-    {"mode": "Genel", "category": "Senaryo", "type": "soru",
-     "text": "Birlikte yaşamak istediğiniz 'mükemmel gün'ü üç sahne olarak düşünün. Her biriniz bu sahnelerden birini tarif edin."},
-    {"mode": "Genel", "category": "Senaryo", "type": "görev",
-     "text": "Bu oyunu, aranızda sadece ikinizin bileceği bir isimle anmaya karar verin. Şimdi bu gizli ismi bulun."},
-]
-
-MAX_SCORE = 10
-MAX_BOND = 20
-
-ROULETTE_CONTROLLERS = ["Sen", "Partnerin", "İkiniz de", "Rastgele değişsin"]
-ROULETTE_LEVELS = ["Yumuşak", "Yoğun", "Tutkulu", "Karanlık"]
-ROULETTE_ACTIONS = ["Sinyal", "Fısıltı", "Yakınlık", "Gizemli Jest"]
-ROULETTE_HINTS = [
-    "Bu kombinasyonu aranızda, dışarıya anlatmayacağınız küçük bir sır haline getirin.",
-    "Detayları kelimelere değil, bakışlara bırakın. O anı sadece siz bilin.",
-    "Sözleri azaltın; nefes, bakış ve küçük jestler dili devralsın.",
-    "Bu turu, gelecekte hatırladığınızda sizi gülümsetecek bir sahneye dönüştürmeye çalışın.",
-]
-
-# -------------------- STATE & YARDIMCI FONKSİYONLAR -------------------- #
-
-if "step" not in st.session_state:
-    st.session_state.step = "start"
-
-defaults = {
-    "player1": "",
-    "player2": "",
-    "players": [],
-    "scores": {},
-    "deck": [],
-    "turn": 0,
-    "current_card": None,
-    "mode": "Karışık",
-    "winner": None,
-    "bond_points": 0,
-    "roulette_result": None,
+void main() {
+  runApp(const IliskiKurtaranApp());
 }
-for k, v in defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
 
+class IliskiKurtaranApp extends StatelessWidget {
+  const IliskiKurtaranApp({super.key});
 
-def reset(full=False):
-    st.session_state.deck = []
-    st.session_state.turn = 0
-    st.session_state.current_card = None
-    st.session_state.winner = None
-    st.session_state.roulette_result = None
-    st.session_state.bond_points = 0
-    if st.session_state.players:
-        st.session_state.scores = {p: 0 for p in st.session_state.players}
-    if full:
-        st.session_state.player1 = ""
-        st.session_state.player2 = ""
-        st.session_state.players = []
-        st.session_state.mode = "Karışık"
-    st.session_state.step = "start"
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'İlişki Kurtaran',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0A030F),
+        fontFamily: 'Roboto',
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFFF1F8A),
+          brightness: Brightness.dark,
+        ),
+      ),
+      home: const SplashScreen(),
+    );
+  }
+}
 
+/// ─────────────────────────
+///  SPLASH
+/// ─────────────────────────
 
-def init_deck(mode: str):
-    if mode == "Karışık":
-        st.session_state.deck = random.sample(CARDS, len(CARDS))
-    else:
-        subset = [c for c in CARDS if c["mode"] == mode or c["mode"] == "Genel"]
-        if not subset:
-            subset = CARDS[:]
-        st.session_state.deck = random.sample(subset, len(subset))
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
 
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
 
-def draw_card():
-    if not st.session_state.deck:
-        init_deck(st.session_state.mode)
-    st.session_state.current_card = st.session_state.deck.pop()
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+  late Animation<double> _opacity;
 
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 3));
 
-def next_turn():
-    if st.session_state.players:
-        st.session_state.turn = (st.session_state.turn + 1) % len(st.session_state.players)
+    _scale = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+    _opacity = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
 
+    _controller.forward();
 
-def add_bond(by=1):
-    st.session_state.bond_points = min(MAX_BOND, st.session_state.bond_points + by)
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainMenuScreen()),
+      );
+    });
+  }
 
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
-def check_winner():
-    for p, s in st.session_state.scores.items():
-        if s >= MAX_SCORE:
-            return p
-    return None
+  @override
+  Widget build(BuildContext context) {
+    const gradient = LinearGradient(
+      colors: [Color(0xFF19051F), Color(0xFF4A0126), Color(0xFF0A030F)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
 
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: gradient),
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _opacity.value,
+                child: Transform.scale(
+                  scale: _scale.value,
+                  child: _buildLogo(),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 
-def header():
-    st.markdown("NOX: Gizli Bağ")
-    st.markdown("<p class='subtitle'>mor sisin içinde, sadece ikinizin bildiği bir oyun</p>", unsafe_allow_html=True)
+  Widget _buildLogo() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: 230,
+          height: 230,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0xFFFF1F8A),
+                blurRadius: 50,
+                spreadRadius: 5,
+              ),
+            ],
+            gradient: RadialGradient(
+              colors: [
+                Color(0x55FF1F8A),
+                Color(0x11000000),
+              ],
+            ),
+          ),
+        ),
+        const Icon(
+          Icons.favorite,
+          color: Color(0xFFFF1F8A),
+          size: 140,
+        ),
+        const Positioned(
+          bottom: -60,
+          child: Column(
+            children: [
+              Text(
+                'İlişki Kurtaran',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Aranızdaki enerjiyi açın',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
+/// ─────────────────────────
+///  ANA MENÜ
+/// ─────────────────────────
 
-def status_bar():
-    if not st.session_state.players:
-        return
-    mode_label = "Roulette" if st.session_state.mode == "Roulette" else st.session_state.mode
-    current = (
-        st.session_state.players[st.session_state.turn]
-        if st.session_state.step in ("game", "card")
-        else None
-    )
-    pills = f"<span class='pill pill-strong'>{mode_label}</span>"
-    if current:
-        pills += f"<span class='pill'>Sıra: {current}</span>"
-    st.markdown(f"<div style='text-align:center; margin-bottom:0.6rem;'>{pills}</div>", unsafe_allow_html=True)
+class MainMenuScreen extends StatelessWidget {
+  const MainMenuScreen({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF0A030F), Color(0xFF19051F), Color(0xFF4A0126)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 24),
+                const Text(
+                  'İlişki Kurtaran',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Mistik – erotik ritüel kart oyunu',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                ),
+                const Spacer(),
+                _MenuButton(
+                  label: 'Oyuna Başla',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const GameScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _MenuButton(
+                  label: 'Kartları Keşfet',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) => const CardGalleryScreen()),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _MenuButton(
+                  label: 'Ayarlar',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  },
+                ),
+                const Spacer(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-def stats():
-    if not st.session_state.players:
-        return
-    st.markdown("### Skor & Bağ")
-    c1, c2 = st.columns([2, 3])
-    with c1:
-        for p, s in st.session_state.scores.items():
-            st.write(f"**{p}**: {s} puan")
-    with c2:
-        ratio = st.session_state.bond_points / MAX_BOND if MAX_BOND else 0
-        st.progress(min(1.0, ratio))
-        st.caption(f"Bağ puanı: {st.session_state.bond_points} / {MAX_BOND}")
+class _MenuButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
 
-# -------------------- EKRANLAR -------------------- #
+  const _MenuButton({required this.label, required this.onTap, super.key});
 
-header()
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFF1F8A)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x55FF1F8A),
+              blurRadius: 15,
+              spreadRadius: 1,
+            ),
+          ],
+          gradient: const LinearGradient(
+            colors: [Color(0x33FF1F8A), Color(0x110A030F)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-# Başlangıç
-if st.session_state.step == "start":
-    st.markdown("### Oyuncular ve Mod")
+/// ─────────────────────────
+///  OYUN EKRANI – KART ÇEKME
+/// ─────────────────────────
 
-    c1, c2 = st.columns(2)
-    with c1:
-        p1 = st.text_input("Oyuncu", value=st.session_state.player1)
-    with c2:
-        p2 = st.text_input("Oyuncu ", value=st.session_state.player2)
+class GameScreen extends StatefulWidget {
+  const GameScreen({super.key});
 
-    st.markdown("### Oyun Modu")
-    mode_options = ["Karışık", "Cesaret", "İtiraf", "Gizli Kart", "Roulette (Türbülans Çarkı)"]
-    current_label = "Roulette (Türbülans Çarkı)" if st.session_state.mode == "Roulette" else st.session_state.mode
-    mode_label = st.selectbox("Bu gece oyunun havası:", mode_options, index=mode_options.index(current_label))
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
 
-    st.markdown(
-        "<div class='subtitle' style='text-align:left;'>"
-        "• <b>Karışık:</b> Tüm katmanlardan kartlar<br>"
-        "• <b>Cesaret:</b> Çekimi öne çıkaran cesur görevler<br>"
-        "• <b>İtiraf:</b> İç dünyayı açan derin sorular<br>"
-        "• <b>Gizli Kart:</b> Sadece birinizin gördüğü sır kartları<br>"
-        "• <b>Roulette:</b> Türbülans Çarkı; kontrol, seviye ve eylem sürpriz"
-        "</div>",
-        unsafe_allow_html=True,
-    )
+class _GameScreenState extends State<GameScreen> {
+  final Random _random = Random();
+  late List<String> _allCards;
+  String? _currentCard;
 
-    start = st.button("Oyuna Başla")
-    if start:
-        if not p1.strip() or not p2.strip():
-            st.warning("İki oyuncu adı da dolu olmalı.")
-        else:
-            st.session_state.player1 = p1.strip()
-            st.session_state.player2 = p2.strip()
-            st.session_state.players = [st.session_state.player1, st.session_state.player2]
-            st.session_state.scores = {p: 0 for p in st.session_state.players}
-            st.session_state.turn = 0
-            st.session_state.current_card = None
-            st.session_state.bond_points = 0
-            st.session_state.winner = None
+  @override
+  void initState() {
+    super.initState();
+    _allCards = [
+      ...tenselEnerjiCards,
+      ...arzuCekimCards,
+      ...derinBagCards,
+      ...mistikOyunCards,
+    ];
+    _allCards.shuffle(_random);
+    _drawNextCard();
+  }
 
-            if mode_label.startswith("Roulette"):
-                st.session_state.mode = "Roulette"
-                st.session_state.step = "roulette"
-            else:
-                st.session_state.mode = mode_label
-                init_deck(st.session_state.mode)
-                st.session_state.step = "game"
+  void _drawNextCard() {
+    setState(() {
+      if (_allCards.isEmpty) {
+        _currentCard =
+            "Tüm kartları tükettiniz. Yeni bir ritüele birlikte başlamak ister misiniz?";
+      } else {
+        _currentCard = _allCards.removeLast();
+      }
+    });
+  }
 
-# Kart modları
-if st.session_state.step in ("game", "card") and st.session_state.mode != "Roulette":
-    if not st.session_state.players:
-        st.info("Önce oyuncu ve mod seçmelisiniz.")
-    else:
-        status_bar()
+  @override
+  Widget build(BuildContext context) {
+    const gradient = LinearGradient(
+      colors: [Color(0xFF0A030F), Color(0xFF19051F), Color(0xFF4A0126)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    );
 
-        if st.session_state.current_card is None and st.session_state.step == "game":
-            st.markdown("### Kart Çek")
-            st.markdown(
-                "<p class='subtitle'>Kart açıldığında, detayları siz dolduracaksınız. NOX sadece sahnenin giriş cümlesini fısıldar.</p>",
-                unsafe_allow_html=True,
-            )
-            if st.button("Kart Çek"):
-                draw_card()
-                add_bond(1)
-                st.session_state.step = "card"
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ritüel Kartı'),
+        backgroundColor: Colors.black54,
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(gradient: gradient),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _currentCard == null
+                      ? const SizedBox()
+                      : _CardDisplay(text: _currentCard!),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _MenuButton(
+                        label: 'Yeni Kart',
+                        onTap: _drawNextCard,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    'Ana Menüye Dön',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-        if st.session_state.current_card is not None and st.session_state.step == "card":
-            card = st.session_state.current_card
-            st.markdown(
-                f"""
-                <div class="neon-wrapper">
-                  <div class="neon-card">
-                    <div>
-                      <span class="pill pill-strong">{card['category']}</span>
-                      <span class="pill">{card['type'].capitalize()}</span>
-                    </div>
-                    <h3 style="margin-top:1rem;">Kart</h3>
-                    <p class="card-text">{card['text']}</p>
-                    <p class="card-note">
-                      Detayı, hızı ve sınırı siz belirleyin; oyun sadece çerçeveyi çizer.
-                    </p>
-                  </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+class _CardDisplay extends StatelessWidget {
+  final String text;
 
-            st.markdown("")
-            b1, b2 = st.columns(2)
-            with b1:
-                done = st.button("Görev / Soru Yaşandı (+1)")
-            with b2:
-                st.markdown("<div class='ghost-btn'>", unsafe_allow_html=True)
-                skip = st.button("Bu Turu Atla", key="skip")
-                st.markdown("</div>", unsafe_allow_html=True)
+  const _CardDisplay({required this.text, super.key});
 
-            if done or skip:
-                current_player = st.session_state.players[st.session_state.turn]
-                if done:
-                    st.session_state.scores[current_player] += 1
-                    add_bond(1)
-                winner = check_winner()
-                if winner:
-                    st.session_state.winner = winner
-                    st.session_state.step = "end"
-                else:
-                    st.session_state.current_card = None
-                    next_turn()
-                    st.session_state.step = "game"
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFFF1F8A), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x55FF1F8A),
+              blurRadius: 25,
+              spreadRadius: 2,
+            ),
+          ],
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xAA19051F),
+              Color(0xAA4A0126),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SingleChildScrollView(
+          child: Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-        stats()
-        st.markdown("---")
-        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
-        back = st.button("Oyuncu / Mod Ayarlarına Dön", key="back_game")
-        st.markdown("</div>", unsafe_allow_html=True)
-        if back:
-            st.session_state.step = "start"
+/// ─────────────────────────
+///  KART GALERİSİ
+/// ─────────────────────────
 
-# Roulette
-if st.session_state.step == "roulette" and st.session_state.mode == "Roulette":
-    status_bar()
-    st.markdown("### Türbülans Çarkı")
-    st.markdown(
-        "<p class='subtitle'>Kontrolü, yoğunluğu ve eylemi çark belirler; gerisini sisin içinde siz tamamlarsınız.</p>",
-        unsafe_allow_html=True,
-    )
+class CardGalleryScreen extends StatelessWidget {
+  const CardGalleryScreen({super.key});
 
-    if st.button("Çarkı Çevir"):
-        controller = random.choice(ROULETTE_CONTROLLERS)
-        level = random.choice(ROULETTE_LEVELS)
-        action = random.choice(ROULETTE_ACTIONS)
-        hint = random.choice(ROULETTE_HINTS)
-        st.session_state.roulette_result = (controller, level, action, hint)
-        add_bond(1)
+  @override
+  Widget build(BuildContext context) {
+    final categories = [
+      {"title": "Tensel Enerji", "cards": tenselEnerjiCards},
+      {"title": "Arzu & Çekim", "cards": arzuCekimCards},
+      {"title": "Derin Duygusal Bağ", "cards": derinBagCards},
+      {"title": "Mistik Oyunlar", "cards": mistikOyunCards},
+    ];
 
-    if st.session_state.roulette_result:
-        controller, level, action, hint = st.session_state.roulette_result
-        st.markdown(
-            f"""
-            <div class="neon-wrapper">
-              <div class="neon-card">
-                <h3>Bu Turun Enerjisi</h3>
-                <p><span class="pill pill-strong">Kontrol</span> {controller}</p>
-                <p><span class="pill">Seviye</span> {level}</p>
-                <p><span class="pill">Eylem</span> {action}</p>
-                <p class="card-note">{hint}</p>
-              </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.markdown("")
-        st.markdown("<div class='ghost-btn'>", unsafe_allow_html=True)
-        done = st.button("Bu Turu Yaşadık (+Bağ)", key="roulette_done")
-        st.markdown("</div>", unsafe_allow_html=True)
-        if done:
-            add_bond(1)
+    return DefaultTabController(
+      length: categories.length,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Kartları Keşfet'),
+          bottom: TabBar(
+            isScrollable: true,
+            tabs: [
+              for (final c in categories) Tab(text: c["title"] as String),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            for (final c in categories)
+              _CardListView(cards: c["cards"] as List<String>),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-    stats()
-    st.markdown("---")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
-        to_cards = st.button("Kart Modlarına Geç", key="to_cards")
-        st.markdown("</div>", unsafe_allow_html=True)
-    with c2:
-        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
-        back = st.button("Oyuncu / Mod Ayarlarına Dön", key="roulette_back")
-        st.markdown("</div>", unsafe_allow_html=True)
-    if to_cards:
-        st.session_state.mode = "Karışık"
-        init_deck("Karışık")
-        st.session_state.step = "game"
-    if back:
-        st.session_state.step = "start"
+class _CardListView extends StatelessWidget {
+  final List<String> cards;
 
-# Bitiş
-if st.session_state.step == "end":
-    status_bar()
-    st.markdown("## Tur Tamamlandı")
-    if st.session_state.winner:
-        st.success(f"Bu turun kazananı: {st.session_state.winner}")
-    else:
-        st.info("Bu turda belirgin bir kazanan yok; ama asıl kazanç aranızdaki bağ oldu.")
-    stats()
-    st.markdown("---")
-    c1, c2 = st.columns(2)
-    with c1:
-        again = st.button("Aynı Modla Yeni Tur", key="again")
-    with c2:
-        st.markdown("<div class='ghost-btn small'>", unsafe_allow_html=True)
-        back = st.button("Oyuncu / Mod Ayarlarına Dön", key="end_back")
-        st.markdown("</div>", unsafe_allow_html=True)
-    if again:
-        init_deck(st.session_state.mode if st.session_state.mode != "Roulette" else "Karışık")
-        st.session_state.scores = {p: 0 for p in st.session_state.players}
-        st.session_state.turn = 0
-        st.session_state.current_card = None
-        st.session_state.winner = None
-        st.session_state.bond_points = 0
-        st.session_state.step = "game"
-    if back:
-        st.session_state.step = "start"
+  const _CardListView({required this.cards, super.key});
 
-st.markdown(
-    "<p class='footer-text'>NOX, ayrıntıları size bırakır; kartlar sadece sisin içinden gelen küçük işaretlerdir.</p>",
-    unsafe_allow_html=True,
-)
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: cards.length,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFFF1F8A), width: 1),
+            gradient: const LinearGradient(
+              colors: [Color(0x3319051F), Color(0x334A0126)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Text(
+            cards[index],
+            style: const TextStyle(fontSize: 16, height: 1.4),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// ─────────────────────────
+///  AYARLAR
+/// ─────────────────────────
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool sesAcik = true;
+  bool titresimAcik = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ayarlar'),
+      ),
+      body: ListView(
+        children: [
+          SwitchListTile(
+            title: const Text('Ses efektleri'),
+            value: sesAcik,
+            onChanged: (v) {
+              setState(() => sesAcik = v);
+            },
+          ),
+          SwitchListTile(
+            title: const Text('Titreşim'),
+            value: titresimAcik,
+            onChanged: (v) {
+              setState(() => titresimAcik = v);
+            },
+          ),
+          const ListTile(
+            title: Text('Dil'),
+            subtitle: Text('Şimdilik: Türkçe'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ─────────────────────────
+///  KART VERİLERİ – 4×80
+/// ─────────────────────────
+
+final List<String> tenselEnerjiCards = [
+  // 1–20: beden farkındalığı
+  "Partnerinin bedeninde en merak ettiğin yeri sadece bakışlarınla işaret et.",
+  "Parmak uçlarınla partnerinin yüzüne 5 saniyelik yumuşak bir dokunuş yap.",
+  "Partnerinin avuç içini kokla ve o anki hissini tek kelimeyle söyle.",
+  "Partnerinin beden sıcaklığını hissetmek için ona 3 saniye yaklaş.",
+  "Partnerinin tenine dokunmadan 1 cm mesafede gez ve enerjiyi tarif et.",
+  "Gözlerini kapat; partnerin sana bedenini bir kelimeyle anlatsın.",
+  "Partnerinin omzuna hafifçe dokun ve o dokunuşun arkasındaki niyeti söyle.",
+  "Partnerinin sırtına parmağınla kısa bir çizgi çiz; hangi duygu uyandığını sor.",
+  "Onun kokusunu fark et ve sana ilk çağrıştırdığı anıyı paylaş.",
+  "Elini partnerinin kalbinin üzerine koyun; ritmi birlikte birkaç saniye dinleyin.",
+  "Bedensel olarak en güvende hissettiğin anı partnerine anlat.",
+  "Partnerinin boynuna yaklaş ama dokunma; hissettiklerini paylaş.",
+  "Parmaklarınla partnerinin yüz şeklini gözlerin kapalıyken keşfet.",
+  "Partnerin sana sadece nefesiyle bir duygu göndersin; tahmin etmeye çalış.",
+  "Dudaklarını partnerinin elinin tersiyle 1 saniyeliğine temas ettir.",
+  "Birbirinizin ten sıcaklığını karşılaştırarak aradaki farkı konuşun.",
+  "Partnerinin kulağına sadece “hazır mısın?” fısılda ve tepkisini izle.",
+  "Onun beline hafifçe dokunarak sınırını hisset, sonra ne hissettiğini söyle.",
+  "Partnerin bedeninin en yumuşak yerini bulmasını iste ve nedenini anlatmasını iste.",
+  "Birbirinize sessizce yaklaşın ve aranızdaki mesafeyi sözcükle tarif edin.",
+  "Partnerine dokunmadan onu hayal ederek hangi duyuyu tetiklediğini söyle.",
+  "Parmak uçlarınla partnerinin dudak çizgisine hafifçe dokun.",
+  "Sadece nefesinizle 5 saniyelik bir ritim yakalamaya çalışın.",
+  "Partnerinin ensesine ılık bir nefes üfle ve ne hissettiğini sor.",
+  "Onun saçına bir kez dokun ve dokunuşunun sende uyandırdığı duyguyu tarif et.",
+  "Göz teması kurarken ellerinizi birbirine değdirin ve hissettiğiniz enerjiyi anlatın.",
+  "Partnerine “dokunulmayı en çok sevdiğin yer neresi?” diye sor.",
+  "Bedeninizde gerilen bir noktayı partnerine göster ve nedenini konuşun.",
+  "Onun yüzüne bak ve en çok nereye dokunmak istediğini söyle.",
+  "Partnerinin yüzüne iki parmağınla hafifçe bir çerçeve çiz.",
+  "Sırtına dokunmadan sıcaklığını hissetmeye çalış; sonra dokun ve farkı anlat.",
+  "Partnerinin elini boynuna götürmesini iste ve orada bir süre kalmasına izin ver.",
+  "Birbirinizin nefes ritmini bilinçli olarak değiştirip farkı gözlemleyin.",
+  "Partnerinin beline sarılın ama konuşmayın; sadece bedeninizi dinleyin.",
+  "Dudaklarınıza dokunmadan 1 cm mesafede bekleyin ve iç sesinizi dinleyin.",
+  "Onun elini kendi kalbin üzerine koy ve ritmini birlikte dinleyin.",
+  "Parmağınla partnerinin dudağında minik bir yol çiz ve ne hissettirdiğini sor.",
+  "Onun saç diplerini hafifçe uyar ve bedeninin tepkisini izle.",
+  "Partnerin sana bedenindeki “en canlı” noktayı göstersin.",
+  "Tenine dokunduğunda ilk hissettiğin duyguyu yüksek sesle söyle.",
+  // 41–60
+  "Partnerine sadece bir dokunuşla “seni istiyorum” mesajı ver.",
+  "Onun beden dilini 5 saniye boyunca sessizce gözlemle ve yorumla.",
+  "Partnerine yavaş bir öpücük vermek istediğin bölgeyi sadece sözle ifade et.",
+  "Partnerine “dokun bana” demesini iste ve ses tonunu hisset.",
+  "Onun ellerinin gücünü hissederek sıkıca elini tut.",
+  "Birbirinizin dudak kenarına hafifçe dokun ve hissi anlat.",
+  "Partnerine “şu an vücudunda ne hissediyorsun?” diye sor.",
+  "Onun kokusunu tarif eden bir metafor bul (örneğin: orman, deniz, ateş).",
+  "Partnerine dokunmadan bile seni etkilediği bir anı anlat.",
+  "Gözlerini kapat ve partnerinin seni sadece dokunuşla yönlendirmesine izin ver.",
+  "Onun bedenini sanki ilk kez görüyormuş gibi baştan sona tarif et.",
+  "Partnerinin boynuna yaklaşınca içinden geçen ilk düşünceyi paylaş.",
+  "Tenine dokunduğunda seni en çok rahatlatan yeri partnerine söyle.",
+  "Partnerinin elini kendi yüz hatlarında gezdirmesine izin ver.",
+  "Onun gülüşünün bedeninde yarattığı etkiyi kelimelere dök.",
+  "Partnerinin göğsüne hafifçe dokun; nefesindeki değişimi fark et.",
+  "Birbirinize ılık bir nefes gönderin ve yalnızca nefesi hissedin.",
+  "Onun omuzlarını keşfediyormuş gibi yavaşça dokun.",
+  "Partnerine “beni şu anda nereye dokunarak sakinleştirirdin?” diye sor.",
+  "Dudaklarınız birbirine yaklaşırken bedenindeki değişimi tarif et.",
+  // 61–80
+  "Partnerine tenine dair en gizli sırrını paylaş.",
+  "Partnerinin tenini bir metaforla anlat (ipek, ateş, deniz gibi).",
+  "Onun dokunuşunun sende açtığı kapıyı tarif et.",
+  "Partnerinin bedeninde en çok “ev” hissettiren yeri söyle.",
+  "Dokunduğunda sende kıvılcım yaratan anı ona anlat.",
+  "Onun sıcaklığının sende yarattığı güven duygusunu tarif et.",
+  "Partnerine “bedenimin en çok sevdiğin kısmı neresi?” diye sor.",
+  "Onun tenini ilk keşfettiğin anı hatırlayıp yeniden canlandırın.",
+  "Partnerinin cildine bir kelime armağan et.",
+  "Bedeninde “uyanmak” kelimesine karşılık gelen yeri düşün ve paylaş.",
+  "Partnerinin dudaklarına yaklaşınca ne hissettiğini dürüstçe söyle.",
+  "Onun teninde seni en çok rahatlatan dokunuş hangisi, anlat.",
+  "Partnerinin boynunu bir kelimeyle tarif et.",
+  "Sadece tek bir parmakla partnerine güçlü bir duygu gönder.",
+  "Onun bedenini tek bir renkle ifade et ve nedenini söyle.",
+  "Partnerinin seni en çok çektiği bölgeyi sadece sözcükle ifade et.",
+  "Onun cildinin dokusunun sende uyandırdığı arzuyu tarif et.",
+  "Partnerine “beni şu an nasıl dokunarak çağırırsın?” diye sor.",
+  "Onun tenine yaklaşınca içindeki dürtüyü tarif et.",
+  "Partnerinin bedeninde keşfetmekten en çok çekindiğin yer neresi, söyle.",
+];
+
+final List<String> arzuCekimCards = [
+  // 1–20
+  "Partnerine “beni şu anda nasıl çağırırsın?” diye sor.",
+  "Onu hayatında en çekici bulduğun anı paylaş.",
+  "Dudaklarına bakarken aklından geçen üç kelimeyi söyle.",
+  "Partnerinin senin için “en tehlikeli” tarafını tarif et.",
+  "Onu yeniden tanısan, ilk hangi beden hareketi seni çekerdi?",
+  "Partnerini ilk gördüğün anda hissettiğin arzuyu anlat.",
+  "Onun vücudunda seni her seferinde çeken yer neresi, söyle.",
+  "Partnerine bir fanteziyi sadece ima ederek anlat (detaya girmeden).",
+  "Onun ses tonunda seni çeken en gizli şeyi tarif et.",
+  "Dudaklarına bakarken içinden geçen ilk dürtüyü söylemek için cesaret et.",
+  "Partnerine “beni nasıl baştan çıkarırsın?” diye sor.",
+  "Onu çekici yapan en küçük ayrıntıyı söyle (el, göz, mimik gibi).",
+  "Partnerini “en ateşli” bulduğun anı tarif et.",
+  "Ona nasıl “gel” diyeceğini sadece bir cümleyle ifade et.",
+  "Partnerinin yürüyüşünde seni çeken detayı anlat.",
+  "Onun kokusunun sende uyandırdığı arzuyu tarif et.",
+  "Partnerine bir arzu metaforu söyle (kıvılcım, volkan, kor gibi).",
+  "Onun bedeninde seni her seferinde tetikleyen küçük bir hareket seç.",
+  "Partnerine “beni şu an en çok neren çağırıyor?” diye sor.",
+  "Ona erotik bir cümleyi fısıldayarak söyle (bir kelime bile olabilir).",
+  // 21–40
+  "Partnerine seni en çok etkilediği bakışını hatırlat.",
+  "Onun yüzünde en ateşli bulduğun ifadeyi tarif et.",
+  "Dudaklarına dokunmadan sadece şeklini tarif et.",
+  "Partnerine “şu an beni hangi bakışla çözersin?” diye sor.",
+  "Onu ilk kez öpmeyi hayal ederek o anı anlat.",
+  "Partnerine seni etkileyen üç mikro mimik söyle.",
+  "Onu utandıracak kadar samimi bir iltifat et.",
+  "Partnerine “beni şu anda hangi bakışınla yakalarsın?” diye sor.",
+  "Onun kalçasında seni çeken küçük bir detayı sözle anlat.",
+  "Partnerinin bel hareketinde seni çeken şeyi tarif et.",
+  "Onu en çok istediğin anı dürüstçe paylaş.",
+  "Üzerindeki kıyafette seni en çok çeken noktayı söyle.",
+  "Partnerine seni “tehlikeli hissettiren” yönünü anlat.",
+  "Onun en çekici vücut duruşunu tarif et.",
+  "Onu hayal ettiğinde bedeninde ilk hangi bölge tepki veriyor, söyle.",
+  "Partnerinin seni etkilediğini ilk fark ettiğin anı anlat.",
+  "Onun bedenini bir ateş türüne benzet (kor, alev, kıvılcım gibi).",
+  "Partnerine “beni en çok hangi dokunuşla çağırırsın?” diye sor.",
+  "Onu neden bazı zamanlarda daha çok istediğini açıklamaya çalış.",
+  "Partnerinin boynunu düşündüğünde aklına gelen ilk kelimeyi söyle.",
+  // 41–60
+  "Partnerinle bir geceyi tek bir kelimeyle tanımla.",
+  "Onunla yaşayabileceğin hayali bir anı sadece ima ederek anlat.",
+  "Partnerinin hangi saatlerde en çekici olduğunu söyle.",
+  "Onun vücudundaki ışığı bir metaforla ifade et.",
+  "Partnerine “beni hangi enerjiyle istiyorsun?” diye sor.",
+  "Teninin rengine en yakın arzu rengini seç ve söyle.",
+  "Partnerinin sıcaklığının sende açığa çıkardığı duyguyu tarif et.",
+  "Onu sana en çok çeken duygusal tetikleyiciyi paylaş.",
+  "Partnerinin bedenini bir kıvılcımla anlat.",
+  "Onun senin için erotik olan en masum hareketini söyle.",
+  "Partnerine “beni düşündüğünde bedenine ne oluyor?” diye sor.",
+  "Onun sana verdiği çekim enerjisini 1’den 10’a puanla.",
+  "Partnerinin dudaklarını bir tatla ilişkilendir.",
+  "Ona hiç söylemediğin ama düşündüğün bir arzuyu ima et.",
+  "Partnerinin bedenindeki “yasak bölgeyi” sadece ima ederek tarif et.",
+  "Onun teni hakkında söylemek isteyip sustuğun bir cümleyi şimdi söyle.",
+  "Partnerinin kalçalarını bir çizgiyle tarif ediyor olsaydın nasıl olurdu?",
+  "Onunla ilgili erotik bir hayalin sadece girişini anlat.",
+  "Partnerinin bedenindeki “en ateşli ritmi” nasıl tarif edersin?",
+  "Onu düşündüğünde aklına gelen fantaziyi sembollerle anlat.",
+  // 61–80
+  "Partnerinin enerjisini bir elementle ifade et (ateş, su, hava, toprak).",
+  "Ona “beni şu anda hangi enerjiyle çağırırsın?” diye sor.",
+  "Bedenindeki arzu uyanışını bir imgeyle anlat.",
+  "Partnerine erotik bir bakış at ve konuşma.",
+  "Onun nefesinin sende yarattığı arzuyu tarif et.",
+  "Partnerinin bedenini hangi ritimde keşfetmek isterdin, paylaş.",
+  "Onu bir “yasak meyve” metaforuyla anlat.",
+  "Partnerine “beni en çok ne zaman istedin?” diye sor.",
+  "Onun vücudunu bir çizgi ile hayal edip tarif et.",
+  "Partnerine dokunmadan bir “enerji öpücüğü” gönder.",
+  "Onun seni tetikleyen en ufak hareketini söyle.",
+  "Partnerine “beni şimdi nerede hayal ediyorsun?” diye sor.",
+  "Onu düşününce bedeninde en çok hangi bölge uyanıyor, tarif et.",
+  "Partnerine gözlerini kapatıp seni nasıl çağırdığını düşünmesini söyle.",
+  "Onu erotik bir ritüelin parçası gibi anlat.",
+  "Partnerinin bedenini bir “sıcaklık haritası” olarak hayal et.",
+  "Onun tenine yaklaşınca içindeki ateşi tarif et.",
+  "Partnerinin dudaklarını bir gece manzarasına benzet.",
+  "Onu şu an sana en çok çeken iç dürtüyü paylaş.",
+  "Partnerine “beni kendine nasıl çekersin?” sorusunu sor ve dinle.",
+];
+
+final List<String> derinBagCards = [
+  // 1–20
+  "Partnerine “sana en çok ne zaman güvendim biliyor musun?” diyerek bir anı anlat.",
+  "Şu anda ilişkide en kırılgan hissettiğin alanı paylaş.",
+  "Partnerine içinden geçen ama söylemekten çekindiğin bir cümleyi söyle.",
+  "Onun sana iyi geldiği en küçük detayı paylaş.",
+  "Bugün kalbini en çok ne yorduğunu partnerine anlat.",
+  "Partnerinden hangi konuda daha fazla güven beklediğini açıkça söyle.",
+  "Partnerine “beni en çok hangi davranışın iyileştiriyor?” diye sor.",
+  "Hayatında en güvende hissettiğin bir anı anlat ve nedenini söyle.",
+  "Partnerine göstermekten en çok çekindiğin duyguyu paylaş.",
+  "Onun sana verdiği güveni bir metaforla anlat (duvar, köprü, ışık gibi).",
+  "Partnerine içsel bir korkunu sessizce fısılda.",
+  "“Sana güvenmek bana nasıl hissettiriyor?” sorusunu cevapla.",
+  "Onun seni hiç yargılamadığı bir anı hatırlat.",
+  "Partnerinden gizlemeden “şu anda şuna ihtiyacım var” de.",
+  "Onun kırılganlığının sende uyandırdığı duyguyu paylaş.",
+  "Partnerinin en güven veren özelliğini söyle.",
+  "Ona karşı en çok açıldığın anı anlat.",
+  "Birlikte aştığınız bir zorluğu hatırlat ve teşekkür et.",
+  "Partnerine “beni en çok nasıl kaygılandırabilirsin?” sorusunu dürüstçe cevapla.",
+  "Onun seni kırmamak için yaptığı küçük bir jesti öv.",
+  // 21–40
+  "Partnerine “bendeki hangi düşünce tarzı seni etkiliyor?” diye sor.",
+  "Onun zekâsının seni etkilediği bir anı paylaş.",
+  "Partnerine bir konuda tamamen aynı hissettiğinizi söyle.",
+  "“Beni en iyi anladığın an şuydu…” diyerek cümleyi tamamla.",
+  "Onunla konuşurken zihninde en çok açılan alanı tarif et.",
+  "Onun yanında hangi duygunu daha özgür yaşayabildiğini söyle.",
+  "Partnerine seni sakinleştiren bir düşünceyi anlat.",
+  "Onunla yaptığınız ilk derin sohbeti hatırlat.",
+  "Partnerine “bende gördüğün en güzel değişim ne?” diye sor.",
+  "Onunla uyuşamadığın bir konuyu nazikçe açıklayıp dinlemeye açık ol.",
+  "Partnerinin hayata bakışındaki en büyüleyici tarafı söyle.",
+  "Onun yanında kendini ne kadar “gerçek” hissettiğini paylaş.",
+  "Partnerine geleceğe dair içsel bir hayalini aç.",
+  "Onun fikirlerinin sende nasıl bir duygu uyandırdığını anlat.",
+  "Partnerinin seni geliştiren bir özelliğini örnekle.",
+  "Onunla ilk kez derin bir bağ hissettiğin anı paylaş.",
+  "Partnerine seni hangi konuda ilham kaynağı yaptığını söyle.",
+  "Onunla konuşurken zamanın nasıl aktığını hissettiğini anlat.",
+  "Partnerinin bakışında seni en çok rahatlatan şeyi tarif et.",
+  "Ona “şu anda bana ne söylemekten çekiniyorsun?” sorusunu sor.",
+  // 41–60
+  "Çocukken sevgiyi nasıl öğrendiğini partnerine anlat.",
+  "Bir ilişkide en çok hangi tür yakınlığa ihtiyaç duyduğunu söyle.",
+  "Partnerine “beni kaybetmekten en çok ne zaman korktun?” diye sor.",
+  "Onun yanında içindeki çocuğun nasıl hissettiğini paylaş.",
+  "Çocuklukta aldığın bir yarayı nazikçe partnerinle paylaş.",
+  "Partnerine “yanımda en çok ne zaman güvende hissettin?” diye sor.",
+  "Varsa terk edilme korkunu sadece ima ederek dile getir.",
+  "Onun sevgisinin sende onardığı bir yeri anlat.",
+  "Partnerinin sana nasıl temas ettiğinde içsel çocuğunun sakinleştiğini söyle.",
+  "Partnerine “şu an içimdeki çocuk sana şunu söylüyor…” cümlesini tamamla.",
+  "Çocukken duymadığın ama şimdi duymak istediğin bir cümleyi ondan iste.",
+  "Ona “zorlandığımda beni nasıl tutmanı isterim…” cümlesini tamamla.",
+  "Partnerinin varlığının sende yarattığı güven katmanını tarif et.",
+  "Onun seni en çok hangi davranışıyla iyileştirdiğini paylaş.",
+  "Hayatında hissettiğin en büyük duygusal yalnızlığı ona anlat.",
+  "Partnerine ihtiyaç duyduğunu kabul etmenin en zor olduğu anı paylaş.",
+  "Onun yanında ağlamak isteseydin sebebi ne olurdu, anlat.",
+  "Partnerine “sende bulduğum aile duygusu…” cümlesini tamamla.",
+  "Çocukken eksik kalan bir duyguyu partnerinden istemeyi dene.",
+  "Partnerine “beni nasıl daha iyi sevebilirsin?” diye sorman için cesaret topla.",
+  // 61–80
+  "Partnerine geleceğe dair en gerçek isteğini söyle.",
+  "Onunla yaşlanma fikrinin sende uyandırdığı duyguyu anlat.",
+  "Beş yıl sonra ilişkinizi tek kelimeyle tanımlasan ne dersin?",
+  "Partnerine “birlikte en çok nerede olmak isterdim?” diyerek hayalini paylaş.",
+  "Onunla uzun bir yolculuk yapma fikrinin sende uyandırdığı hissi anlat.",
+  "Partnerine “aynı takımdayız” hissini ne zaman yaşadığını söyle.",
+  "Sadakat senin için ne demek? Tek cümleyle açıkla.",
+  "Onun sana bağlı hissettiğini ilk ne zaman fark ettiğini paylaş.",
+  "Partnerine geleceğe dair ondan bir ricada bulun.",
+  "Onunla beraber öğrenmek istediğin yeni bir şeyi söyle.",
+  "İlişkinizde bir ritüel yaratacak olsan bunun ne olacağını anlat.",
+  "Partnerinin geleceğine dair içten bir temennini paylaş.",
+  "Birlikte kurduğunuz bağı bir sembolle ifade et.",
+  "Partnerine “seninle daha çok … yapmak istiyorum” cümlesini tamamla.",
+  "Onunla birlikte aşmak istediğin bir zorluğu söyle.",
+  "Partnerine “bende en çok neyi güçlendirdin biliyor musun?” diyerek cevap ver.",
+  "Onu kaybetme fikrinin sende uyandırdığı duyguyu tek kelimeyle ifade et.",
+  "Partnerine gelecekte birlikte gerçekleştirmek istediğin bir hayali anlat.",
+  "Ona “benim bir gölge yanım var, bunu kabul eder misin?” diye sor.",
+  "Partnerine minnettarlığını sadece bakışlarınla ifade etmeye çalış.",
+];
+
+final List<String> mistikOyunCards = [
+  // 1–20
+  "Partnerinin şu anda aklından geçen kelimeyi sez ve söylemeye çalış.",
+  "Gözlerini kapat; partnerin sana sessizce bir duygu göndersin, hissettiğini söyle.",
+  "Partnerinin bedeninde şu anda en aktif enerjiyi tahmin et.",
+  "Birbirinize dokunmadan “beni çağır” enerjisi gönderin.",
+  "Partnerin bir hayal düşünsün; sen de ona en yakın sembolü seç.",
+  "Hissettiğin bir duygu dalgasını partnerine söyle: sıcaklık, soğukluk, titreşim…",
+  "Partnerinin ruh hâlini bir renkle ifade et.",
+  "Onun enerjisinin bugün bedeninin neresinde yoğunlaştığını sez.",
+  "Partnerinin iç sesinin şu anda ne söylediğini tahmin et.",
+  "Bir element seç ve partnerine bunu hissettir: ateş, su, sis, ışık.",
+  "Partnerinin gözlerinden ne istediğini sez ve paylaş.",
+  "Onun dokunmadan beden ritmini hissetmeye çalış.",
+  "Partnerinin içsel yorgunluğunu bir hayvan sembolüyle tarif et.",
+  "Onun şu anda sakladığı duyguyu bir metaforla ifade et.",
+  "Partnerinin enerjisinin yüksek mi düşük mü olduğunu sezgisel olarak söyle.",
+  "Onun şu anda en çok istediği şeyi tahmin etmeye çalış.",
+  "Partnerinin kalbinden geçen cümleyi hayal edip paylaş.",
+  "Aranızdaki bağı bir elementle seç (ateş, su, hava, toprak).",
+  "Partnerinin gölge yönünü sez ve yargılamadan bir kelimeyle ifade et.",
+  "Onun seni çağırdığı enerjiyi tarif et: yakınlık mı, oyun mu, tutku mu?",
+  // 21–40
+  "Elini partnerinin eline koy ve 10 saniye enerji akışını takip et.",
+  "Birlikte 3 derin nefes alın, ritminizi uyumlu hale getirin.",
+  "Gözlerinizi kapatın; aynı anda bir kelime söylemeye çalışın.",
+  "Onun enerjisini yükseltmek için küçük bir jest yap (dokunmak zorunda değil).",
+  "Partnerinin omuzlarına dokunmadan enerji yönlendirdiğini hayal et.",
+  "Birlikte bir ritüel kelimesi seçin: uyan, yakınlaş, derinleş, ak gibi.",
+  "Partnerine özel bir ritüel el işareti icat edin.",
+  "İkiniz için sembolik bir mühür kelimesi belirleyin.",
+  "Elleriniz birbirine yakınken aranızda bir enerji çemberi hayal edin.",
+  "Beraber 5 saniyelik sessiz bir mini meditasyon yapın.",
+  "Partnerinin enerjisindeki en parlak noktayı sez ve söyle.",
+  "Ona kısa bir koruma cümlesi söyle: “yanındayım”, “buradayım” gibi.",
+  "Birlikte sadece ikinize özel yeni bir ritüel kelimesi yaratın.",
+  "Onun enerjisinin bugün ateşe mi, suya mı daha yakın olduğunu söyle.",
+  "Partnerine bir enerji rengi seç ve nedenini açıkla.",
+  "Partnerinin kalbinden eline doğru enerji aktığını hayal edin.",
+  "Başlarınızı yavaşça birbirinize yaklaştırın ve aradaki alanı hissedin.",
+  "Nefesinizin ritmini aynı hizaya getirip hissettiklerinizi paylaşın.",
+  "Aranızdaki bağı tek bir sesle ifade edin: fısıltı, nefes, mırıldanma.",
+  "Gözlerinizi kapatıp “biz” halinizin enerjisini dinleyin.",
+  // 41–60
+  "Partnerinin ruhunu bir mitolojik yaratıkla tarif et.",
+  "Onu bir element tanrı/tanrıçasına benzet (sadece sembolik).",
+  "Partnerine bir “gölge hayvanı” seç (örneğin kurt, baykuş, kedi…).",
+  "Onun enerjisinin bugün hangi gezegene benzediğini söyle.",
+  "Aranızdaki bağı bir tarot kartına benzet (aşıklar, güneş, ay gibi).",
+  "Partnerinin ruh hâlini sezgisel bir sembolle anlat (ok, spiral, alev…).",
+  "Onu “gecenin” hangi hâline benzetirsin? alacakaranlık, ay ışığı, şafak?",
+  "Partnerin için havaya küçük bir koruyucu sembol çiz.",
+  "Onun enerjisinin titreşimini bir müzik ritmiyle tarif et.",
+  "Partnerine bir “ritüel adı” ver (örneğin: sessiz ateş, gece rüzgârı).",
+  "Onu mistik bir varlık gibi hayal ederek kısa bir cümle kur.",
+  "Partnerinin içsel gücünü bir tanrıça/tanrı niteliğiyle ifade et.",
+  "Onun ruh rengine karar ver ve nedenini anlat.",
+  "İkinizi bağlayan gizli bir sembol icat edin (bir şekil, işaret, hareket).",
+  "Aranızdaki bağı bir büyü türüne benzet (ışık büyüsü, ateş büyüsü…).",
+  "Partnerinin ışık tarafını tek bir kelimeyle anlat.",
+  "Onun gölge tarafını nazik bir metaforla ifade et.",
+  "Onu bir rüzgâr türü olarak hayal et (fırtına, meltem, esinti).",
+  "Partnerine bir kutsal sözcük fısılda (sadece ikinizin anlamını bildiği).",
+  "Beraber bir “enerji sembolü” yaratın (el hareketi, işaret, çizgi).",
+  // 61–80
+  "Partnerine dokunmadan bir “enerji öpücüğü” gönderdiğini hayal et.",
+  "Onun bedenine dokunmadan bir sıcaklık dalgası yönlendir.",
+  "Partnerine yaklaş ve sadece nefeslerinle bir ritim oluştur.",
+  "Elleriniz birbirine değmeden “enerji dansı” yapın.",
+  "Onun bedenini sezgisel bir ışık haritası gibi düşün.",
+  "Partnerine derin ve çağıran bir ritüel bakışı gönder.",
+  "Onun dudaklarına yaklaş ama dokunma; enerjiyi hisset.",
+  "Partnerine bedensel enerjinin hangi bölgede uyandığını söyle.",
+  "Birbirinize dokunmadan yakınlık enerjisi gönderin.",
+  "Partnerinin aurasını bir renk akışı olarak tarif et.",
+  "Onun tenine yaklaşınca içindeki titreşimi tarif et.",
+  "Partnerine sezgisel olarak bir dokunuş “tarifi” yap (uygulanmadan).",
+  "Onun enerjisini ateşle uyandıran hareketi sözle anlat.",
+  "Partnerine ritüel bir cümle söyle: “beni çağır”, “gel bana” gibi.",
+  "Elleriniz yakınken aranızdaki sıcaklık dalgasını tanımlayın.",
+  "Partnerine “enerjimi nereye yönlendireyim?” diye sor.",
+  "Gözlerinizi kapatıp sadece birbirinizin nefesini dinleyin.",
+  "Onun bedenini sis içinde hayal edip bir noktayı seç ve tarif et.",
+  "Birbirinize “çekim sırrı” fısıldayın (tek kelime bile olabilir).",
+  "Partnerine enerjinizin bugün hangi tonda olduğunu söyle (yumuşak, yoğun, coşkulu).",
+];
